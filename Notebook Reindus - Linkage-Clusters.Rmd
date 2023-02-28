@@ -49,6 +49,7 @@ library(Factoshiny)
 library(skimr)
 library(tseries)
 
+setwd("C:/Users/Bendounan Adel/Documents/Projet_methodo_3A/stat_desc_projetmethodo/by_country")
 ```
 
 ############################################################################################################
@@ -66,66 +67,271 @@ Baseres_HEM_A17_FIGARO = readRDS("C:/Users/Bendounan Adel/Documents/Projet_metho
 Baseres_HEM_A17_WIOD = readRDS("C:/Users/Bendounan Adel/Documents/Projet_methodo_3A/RESULT_HEM_A17_WIOD(1).rds")
 Baseres_HEM_ECOLE = readRDS("C:/Users/Bendounan Adel/Documents/Projet_methodo_3A/RESULT_HEM_ECOLE.rds")
 
-
+write.csv2(BASEres_LinkageBwdFwd_A17,file = "C:/Users/Bendounan Adel/Documents/Projet_methodo_3A/stat_desc_projetmethodo/BASEres_LinkageBwdFwd_A17.csv")
+write.csv2(BASEres_LinkageBwdFwd_ECOLE,file = "C:/Users/Bendounan Adel/Documents/Projet_methodo_3A/stat_desc_projetmethodo/BASEres_LinkageBwdFwd_ECOLE.csv")
+write.csv2(BASEres_LinkageBwdFwd_LRWIOD,file = "C:/Users/Bendounan Adel/Documents/Projet_methodo_3A/stat_desc_projetmethodo/BASEres_LinkageBwdFwd_LRWIOD.csv")
+write.csv2(Baseres_HEM_ECOLE,file = "C:/Users/Bendounan Adel/Documents/Projet_methodo_3A/stat_desc_projetmethodo/Baseres_HEM_ECOLE.csv")
+write.csv2(Baseres_HEM_A17_WIOD,file = "C:/Users/Bendounan Adel/Documents/Projet_methodo_3A/stat_desc_projetmethodo/Baseres_HEM_A17_WIOD.csv")
+write.csv2(Baseres_HEM_A17_FIGARO,file = "C:/Users/Bendounan Adel/Documents/Projet_methodo_3A/stat_desc_projetmethodo/Baseres_HEM_A17_FIGARO.csv")
+# setwd("C:/Users/Bendounan Adel/Documents/Projet_methodo_3A/stat_desc_projetmethodo/by_country")
 
 BDD_bwd<-BASEres_LinkageBwdFwd_A17[["Indic_Bwd_byCountry"]][,link:="Bwd"]
 BDD_fwd<-BASEres_LinkageBwdFwd_A17[["Indic_Fwd_byCountry"]][,link:="Fwd"]
-plot(BDD_bwd$value ~ factor(BDD_bwd$Lig_Indus))
-plot(BDD_bwd$value ~ factor(BDD_bwd$Lig_Country))
-# plot(BDD_fwd$value ~ factor(BDD_fwd$Lig_Indus))
-# plot(BDD_fwd$value ~ factor(BDD_fwd$Lig_Country))
+echelle = "_A17"
+setnames(BDD_bwd,c("Col_Country","Col_Indus"),c("Lig_Country","Lig_Indus"))
+BDD_bwd_fwd<-rbind(BDD_bwd,BDD_fwd)
+
+BDD_Dom_bwd<-BASEres_LinkageBwdFwd_A17[["Indic_Bwd_PartDOM"]][,link:="Bwd"]
+BDD_Dom_fwd<-BASEres_LinkageBwdFwd_A17[["Indic_Fwd_PartDOM"]][,link:="Fwd"]
+echelle = "_A17"
+setnames(BDD_Dom_bwd,c("Col_Country","Col_Indus"),c("Lig_Country","Lig_Indus"))
+BDD_Dom_bwd_fwd<-rbind(BDD_Dom_bwd,BDD_Dom_fwd)
+
+BDD_A17 = merge(BDD_bwd_fwd,BDD_Dom_bwd_fwd,by = c("Lig_Country","Lig_Indus","year","link"))
+BDD_A17 = BDD_A17 %>%
+  mutate(valueDom = value*Part_Dom,pays_branche = paste(Lig_Country,Lig_Indus))
+
+
+BDD_A17 = BDD_A17 %>%
+  arrange(year,value)
+
+cinq_max = function(annee,linkage){
+  data = BDD_A17[BDD_A17$year==annee & BDD_A17$link==linkage,]
+  data = data %>%
+    arrange(value)
+  print(c(data$pays_branche[1:5],annee,linkage))
+}
+for (annee in 2000:2020){
+  cinq_max(annee,"Bwd")
+  cinq_max(annee,"Fwd")
+}
+# annee = 2000
+# linkage = "Bwd"
+# data = BDD_A17[BDD_A17$year==annee & BDD_A17$link==linkage,]
+#   data = data %>%
+#   arrange(desc(value))
+#   return(data[1:5,])
+
+
+
+
+# data = BDD_bwd_fwd[BDD_bwd_fwd$Lig_Country==pays,]
+# ggplot(data, aes(x=as.factor(year), y=value, fill=link)) +
+# geom_boxplot() +
+# labs(title=paste("Boxplot des indicateurs BWD et FWD par branche pour le pays",pays),x="annee", y = "Indicateurs bwd et fwd")
+# BDD_bwd_fwd = BDD_bwd_fwd %>%
+#   arrange(desc(value))
+# BDD_couple_bwd_fwd = merge(BDD_bwd,BDD_fwd,by = c("Lig_Country","Lig_Indus","year"))
+# colnames(BDD_couple_bwd_fwd) = c("Lig_Country","Lig_Indus","year","value_bwd","link.x","value_fwd","link.y")
+# BDD_couple_bwd_fwd = BDD_couple_bwd_fwd[,c(-5,-7)]
+BDD_bwd_fwd_essai  = BDD_A17 %>%
+  group_by(year,link) %>%
+  summarise(max = max(value, na.rm = TRUE),min = min(value, na.rm = TRUE),individus_a_plus_haut_linkage = pays_branche[which.max(value)],individus_a_plus_bas_linkage = pays_branche[which.min(value)],
+            scnd_max = pays_branche[quantile(value,probs = 1/428)],
+           max_loc = max(valueDom, na.rm = TRUE),min_loc = min(valueDom, na.rm = TRUE),individus_a_plus_haut_linkageloc = pays_branche[which.max(valueDom)],individus_a_plus_bas_linkageloc = pays_branche[which.min(valueDom)] )
+
+# BDD_bwd_fwd_essai  = BDD_bwd_fwd %>%
+#   group_by(Lig_Indus,year,link) %>%
+#   summarise(avg = mean(value))
+
+# ggplot(BDD_bwd_fwd_essai, aes(x=as.factor(year), y=, fill=link)) +
+# geom_boxplot() +
+# labs(title="Boxplot des indicateurs BWD et FWD par année",x="annee", y = "Indicateurs bwd et fwd")
+#
+
+
+
+ggplot(BDD_bwd_fwd_essai) +
+  geom_point(
+    aes(x=year, y=min_loc ,shape = link, color = individus_a_plus_bas_linkageloc)
+  ) +
+  labs(title="Graphique des min de linkages intérieurs par année",x="Année", y = "Indicateurs bwd et fwd")
+
+
+
+
+BDD_bwd<-BASEres_LinkageBwdFwd_ECOLE[["Indic_Bwd_byCountry"]][,link:="Bwd"]
+BDD_fwd<-BASEres_LinkageBwdFwd_ECOLE[["Indic_Fwd_byCountry"]][,link:="Fwd"]
+echelle = "_ECOLE"
+#setnames(BDD_fwd,c("Col_Country","Col_Indus"),c("Lig_Country","Lig_Indus"))
+BDD_bwd_fwd<-rbind(BDD_bwd,BDD_fwd)
+
+BDD_bwd<-BASEres_LinkageBwdFwd_LRWIOD[["Indic_Bwd_byCountry"]][,link:="Bwd"]
+BDD_fwd<-BASEres_LinkageBwdFwd_LRWIOD[["Indic_Fwd_byCountry"]][,link:="Fwd"]
+BDD_fwd = subset(BDD_fwd,year<2000)
+BDD_bwd = subset(BDD_bwd,year<2000)
+echelle = "_LRWIOD"
 setnames(BDD_fwd,c("Col_Country","Col_Indus"),c("Lig_Country","Lig_Indus"))
 BDD_bwd_fwd<-rbind(BDD_bwd,BDD_fwd)
-BDD_couple_bwd_fwd = merge(BDD_bwd,BDD_fwd,by = c("Lig_Country","Lig_Indus","year"))
-colnames(BDD_couple_bwd_fwd) = c("Lig_Country","Lig_Indus","year","value_bwd","link.x","value_fwd","link.y")
-BDD_couple_bwd_fwd = BDD_couple_bwd_fwd[,c(-5,-7)]
 
 
-BDD_statdesc_bwd_fwd_bycountry = BDD_bwd_fwd %>%
+
+#Réalisation des Boxplots 
+
+#Bwd
+bowplot_bwd_fwd_pays = function(pays){
+  # setwd("C:/Users/Bendounan Adel/Documents/Pictures/sf_projetmethodo")
+  data = BDD_A17[BDD_A17$Lig_Country==pays,]
+  ggplot(data, aes(x=as.factor(year), y=value, fill=link)) +
+  geom_boxplot() +
+  labs(title=paste("Boxplot des indicateurs BWD et FWD par année pour le pays",pays),x="annee", y = "Indicateurs bwd et fwd")
+  ggsave(filename = paste(paste(pays,echelle),".png"))
+  #
+}
+for (country in levels(factor(BDD_A17$Lig_Country))){
+  bowplot_bwd_fwd_pays(country)
+}
+
+
+  
+bowplot_bwd_fwd_br = function(br){
+  # setwd("C:/Users/Bendounan Adel/Documents/Projet_methodo_3A/stat_desc_projetmethodo/by_branche")
+  data = BDD_A17[BDD_A17$Lig_Indus==br,]
+  ggplot(data, aes(x=as.factor(year), y=value, fill=link)) +
+  geom_boxplot() +
+  labs(title=paste("Boxplot des indicateurs BWD et FWD par année pour la branche",br),x="Année", y = "Indicateur bwd et fwd")
+  ggsave(filename = paste(paste(br,echelle),".png"))
+  # dev.print(device = png,file = paste(br,paste(echelle,"_bwd.png")),width = 600)
+}
+for (branche in levels(factor(BDD_A17$Lig_Indus))){
+  bowplot_bwd_fwd_br(branche)
+}
+
+#BDD de stats desc
+
+BDD_statdesc_bwd_fwd_bycountry_A17 = BDD_bwd_fwd %>%
   group_by(Lig_Country,year,link) %>%
   summarise(missing_va = sum(is.na(value)),avg = mean(value),ecart_t = sd(value),med = median(value),minim = min(value),q1 = quantile(value,probs = 0.25),q3 = quantile(value,probs = 0.75),maxim = max(value),label_min = Lig_Indus[which.min(value)],label_2nd_min = Lig_Indus[order(value)==2],label_2nd_max = Lig_Indus[order(value,decreasing = T)==2] ,label_max = Lig_Indus[which.max(value)])
+write.csv(BDD_statdesc_bwd_fwd_bycountry_ECOLE,file = paste("C:/Users/Bendounan Adel/Documents/Projet_methodo_3A/stat_desc_projetmethodo/by_country/BDD_statdesc_bwd_fwd_bycountry_ECOLE.csv"))
 
-BDD_statdesc_bwd_fwd_byIndus = BDD_bwd_fwd %>%
+
+BDD_statdesc_bwd_fwd_byIndus_ECOLE = BDD_bwd_fwd %>%
   group_by(Lig_Indus,year,link) %>%
   summarise(missing_va = sum(is.na(value)),avg = mean(value),ecart_t = sd(value),med = median(value),minim = min(value),q1 = quantile(value,probs = 0.25),q3 = quantile(value,probs = 0.75),maxim = max(value),label_min = Lig_Country[which.min(value)],label_2nd_min = Lig_Country[order(value)==2],label_2nd_max = Lig_Country[order(value,decreasing = T)==2] ,label_max = Lig_Country[which.max(value)])
+write.csv(BDD_statdesc_bwd_fwd_byIndus_ECOLE,file = "C:/Users/Bendounan Adel/Documents/Projet_methodo_3A/stat_desc_projetmethodo/by_branche/BDD_statdesc_bwd_fwd_byIndus_ECOLE.csv")
 
 #Les coefficients de backward et forward sont relativement stables en moyenne
 #Par conséquent, chercher à travailler de sur des axes d'un autre pays n'apporte pas d'informations  supplémentaires !
 
 BDD_Dom_bwd<-BASEres_LinkageBwdFwd_A17[["Indic_Bwd_PartDOM"]][,link:="Bwd"]
 BDD_Dom_fwd<-BASEres_LinkageBwdFwd_A17[["Indic_Fwd_PartDOM"]][,link:="Fwd"]
+echelle = "_A17"
+#setnames(BDD_Dom_bwd,c("Col_Country","Col_Indus"),c("Lig_Country","Lig_Indus"))
+BDD_Dom_bwd_fwd<-rbind(BDD_Dom_bwd,BDD_Dom_fwd)
+
+BDD_Dom_bwd<-BASEres_LinkageBwdFwd_ECOLE[["Indic_Bwd_PartDOM"]][,link:="Bwd"]
+BDD_Dom_fwd<-BASEres_LinkageBwdFwd_ECOLE[["Indic_Fwd_PartDOM"]][,link:="Fwd"]
+echelle = "_ECOLE"
+#setnames(BDD_Dom_bwd,c("Col_Country","Col_Indus"),c("Lig_Country","Lig_Indus"))
+BDD_Dom_bwd_fwd<-rbind(BDD_Dom_bwd,BDD_Dom_fwd)
+
+BDD_Dom_bwd<-BASEres_LinkageBwdFwd_LRWIOD[["Indic_Bwd_PartDOM"]][,link:="Bwd"]
+BDD_Dom_fwd<-BASEres_LinkageBwdFwd_LRWIOD[["Indic_Fwd_PartDOM"]][,link:="Fwd"]
+BDD_Dom_bwd = subset(BDD_Dom_bwd,year<2000)
+BDD_Dom_fwd = subset(BDD_Dom_fwd,year<2000)
+echelle = "_LRWIOD"
+setnames(BDD_Dom_bwd,c("Col_Country","Col_Indus"),c("Lig_Country","Lig_Indus"))
+BDD_Dom_bwd_fwd<-rbind(BDD_Dom_bwd,BDD_Dom_fwd)
+
+# setnames(BDD_Dom_bwd,c("Col_Country","Col_Indus"),c("Lig_Country","Lig_Indus"))
+# BDD_Dom_bwd_fwd<-rbind(BDD_Dom_bwd,BDD_Dom_fwd)
+BDD_couple_Dom_bwd_fwd = cbind(BDD_Dom_bwd,BDD_Dom_fwd,by = c("Lig_Country","Lig_Indus","year"))
+
+
+bowplot_Dom_bwd_fwd_pays = function(pays){
+  setwd("C:/Users/Bendounan Adel/Documents/Projet_methodo_3A/stat_desc_projetmethodo/by_country")
+  data = BDD_Dom_bwd_fwd[BDD_Dom_bwd_fwd$Lig_Country==pays,]
+  ggplot(data, aes(x=Lig_Indus, y=Part_Dom, fill=link)) +
+  geom_boxplot() +
+  labs(title=paste("Boxplot des parts DOM des indicateurs BWD et FWD par branche pour le pays",pays),x="Branche de l'économie", y = "Part en DOM des Indicateurs bwd et fwd")
+  ggsave(filename = paste(paste(pays,echelle),"_DOM.png"))
+  #
+}
+for (country in levels(factor(BDD_bwd_fwd$Lig_Country))){
+  bowplot_Dom_bwd_fwd_pays(country)
+}
+
+
+  
+bowplot_Dom_bwd_fwd_br = function(br){
+  setwd("C:/Users/Bendounan Adel/Documents/Projet_methodo_3A/stat_desc_projetmethodo/by_branche")
+  data = BDD_Dom_bwd_fwd[BDD_Dom_bwd_fwd$Lig_Indus==br,]
+  ggplot(data, aes(x=Lig_Country, y=Part_Dom, fill=link)) +
+  geom_boxplot() +
+  labs(title=paste("Boxplot des parts DOM des indicateurs BWD et FWD par pays pour la branche",br),x="Pays", y = "Part en DOM des Indicateurs bwd et fwd")
+  ggsave(filename = paste(paste(br,echelle),"_DOM.png"))
+  # dev.print(device = png,file = paste(br,paste(echelle,"_bwd.png")),width = 600)
+}
+for (branche in levels(factor(BDD_Dom_bwd_fwd$Lig_Indus))){
+  bowplot_Dom_bwd_fwd_br(branche)
+}
+
 # plot(BDD_Dom_bwd$value ~ factor(BDD_Dom_bwd$Lig_Indus))
 # plot(BDD_Dom_bwd$value ~ factor(BDD_Dom_bwd$Lig_Country))
 # plot(BDD_Dom_fwd$value ~ factor(BDD_Dom_fwd$Lig_Indus))
 # plot(BDD_Dom_fwd$value ~ factor(BDD_Dom_fwd$Lig_Country))
-setnames(BDD_Dom_bwd,c("Col_Country","Col_Indus"),c("Lig_Country","Lig_Indus"))
-BDD_Dom_bwd_fwd<-rbind(BDD_Dom_bwd,BDD_Dom_fwd)
-BDD_couple_Dom_bwd_fwd = cbind(BDD_Dom_bwd,BDD_Dom_fwd,by = c("Lig_Country","Lig_Indus","year"))
 
-BDD_Dom_statdesc_bwd_fwd_bycountry = BDD_Dom_bwd_fwd %>%
+BDD_Dom_statdesc_bwd_fwd_bycountry_ECOLE = BDD_Dom_bwd_fwd %>%
   group_by(Lig_Country,year,link) %>%
   summarise(missing_va = sum(is.na(Part_Dom)),avg = mean(Part_Dom),ecart_t = sd(Part_Dom),med = median(Part_Dom),minim = min(Part_Dom),q1 = quantile(Part_Dom,probs = 0.25),q3 = quantile(Part_Dom,probs = 0.75),maxim = max(Part_Dom),label_min = Lig_Indus[which.min(Part_Dom)],label_2nd_min = Lig_Indus[order(Part_Dom)==2],label_2nd_max = Lig_Indus[order(Part_Dom,decreasing = T)==2] ,label_max = Lig_Indus[which.max(Part_Dom)])
+write.csv(BDD_Dom_statdesc_bwd_fwd_bycountry_ECOLE,file = "C:/Users/Bendounan Adel/Documents/Projet_methodo_3A/stat_desc_projetmethodo/by_country/BDD_Dom_statdesc_bwd_fwd_bycountry_ECOLE.csv")
 
-BDD_Dom_statdesc_bwd_fwd_byIndus = BDD_Dom_bwd_fwd %>%
+
+
+BDD_Dom_statdesc_bwd_fwd_byIndus_ECOLE = BDD_Dom_bwd_fwd %>%
   group_by(Lig_Indus,year,link) %>%
   summarise(missing_va = sum(is.na(Part_Dom)),avg = mean(Part_Dom),ecart_t = sd(Part_Dom),med = median(Part_Dom),minim = min(Part_Dom),q1 = quantile(Part_Dom,probs = 0.25),q3 = quantile(Part_Dom,probs = 0.75),maxim = max(Part_Dom),label_min = Lig_Country[which.min(Part_Dom)],label_2nd_min = Lig_Country[order(Part_Dom)==2],label_2nd_max = Lig_Country[order(Part_Dom,decreasing = T)==2] ,label_max = Lig_Country[which.max(Part_Dom)])
+write.csv(BDD_Dom_statdesc_bwd_fwd_byIndus_ECOLE,file = "C:/Users/Bendounan Adel/Documents/Projet_methodo_3A/stat_desc_projetmethodo/by_branche/BDD_Dom_statdesc_bwd_fwd_byIndus_ECOLE.csv")
+
 
 ####### HEM ###########
 
 BDD_HEM<-Baseres_HEM_A17_FIGARO
-plot(BDD_HEM$Indic_HEM ~ factor(BDD_HEM$Lig_Indus))
-plot(BDD_HEM$Indic_HEM ~ factor(BDD_HEM$Lig_Country))
+levels(as.factor(BDD_HEM$year))
+
+
+bowplot_HEM_pays = function(pays){
+  # setwd("C:/Users/Bendounan Adel/Documents/Projet_methodo_3A/stat_desc_projetmethodo/by_country")
+  data = BDD_HEM[BDD_HEM$Lig_Country==pays,]
+  ggplot(data, aes(x=as.factor(year), y=Indic_HEM)) +
+  geom_boxplot() +
+  labs(title=paste("Boxplot des indicateurs HEM par année pour le pays",pays),x="année", y = "Indicateur HEM")
+  ggsave(filename = paste(pays,"_FIGHEM.png"))
+  # dev.print(device = png,file = paste(pays,"_hem.png"),width = 600)
+}
+for (country in levels(factor(BDD_HEM$Lig_Country))){
+  bowplot_HEM_pays(country)
+}
+
+
+bowplot_HEM_br = function(br){
+  setwd("C:/Users/Bendounan Adel/Documents/Projet_methodo_3A/stat_desc_projetmethodo/by_branche")
+  data = BDD_HEM[BDD_HEM$Lig_Indus==br,]
+  ggplot(data, aes(x=Lig_Country, y=Indic_HEM)) +
+  geom_boxplot() +
+  labs(title=paste("Boxplot des indicateurs HEM par pays pour la branche",br),x="Pays", y = "Indicateur HEM")
+  ggsave(filename = paste(br,"_HEM.png"))
+}
+for (branche in levels(factor(BDD_HEM$Lig_Indus))){
+  bowplot_HEM_br(branche)
+}
+
+# 
+# plot(BDD_HEM$Indic_HEM ~ factor(BDD_HEM$Lig_Indus))
+# plot(BDD_HEM$Indic_HEM ~ factor(BDD_HEM$Lig_Country))
 # plot(BDD_Dom_fwd$value ~ factor(BDD_Dom_fwd$Lig_Indus))
 # plot(BDD_Dom_fwd$value ~ factor(BDD_Dom_fwd$Lig_Country))
 
 BDD_HEM_statdesc_bycountry = BDD_HEM %>%
   group_by(Lig_Country,year) %>%
   summarise(missing_va = sum(is.na(Indic_HEM)),avg = mean(Indic_HEM),ecart_t = sd(Indic_HEM),med = median(Indic_HEM),minim = min(Indic_HEM),q1 = quantile(Indic_HEM,probs = 0.25),q3 = quantile(Indic_HEM,probs = 0.75),maxim = max(Indic_HEM),label_min = Lig_Indus[which.min(Indic_HEM)],label_2nd_min = Lig_Indus[order(Indic_HEM)==2],label_2nd_max = Lig_Indus[order(Indic_HEM,decreasing = T)==2] ,label_max = Lig_Indus[which.max(Indic_HEM)])
+write.csv(BDD_HEM_statdesc_bycountry,file = "C:/Users/Bendounan Adel/Documents/Projet_methodo_3A/stat_desc_projetmethodo/by_country/BDD_HEM_statdesc_bycountry.csv")
+
 
 BDD_HEM_statdesc_byIndus = BDD_HEM %>%
   group_by(Lig_Indus,year) %>%
   summarise(missing_va = sum(is.na(Indic_HEM)),avg = mean(Indic_HEM),ecart_t = sd(Indic_HEM),med = median(Indic_HEM),minim = min(Indic_HEM),q1 = quantile(Indic_HEM,probs = 0.25),q3 = quantile(Indic_HEM,probs = 0.75),maxim = max(Indic_HEM),label_min = Lig_Country[which.min(Indic_HEM)],label_2nd_min = Lig_Country[order(Indic_HEM)==2],label_2nd_max = Lig_Country[order(Indic_HEM,decreasing = T)==2] ,label_max = Lig_Country[which.max(Indic_HEM)])
-
+write.csv(BDD_HEM_statdesc_byIndus,file = "C:/Users/Bendounan Adel/Documents/Projet_methodo_3A/stat_desc_projetmethodo/by_branche/BDD_HEM_statdesc_byIndus.csv")
 
 
 
@@ -133,32 +339,42 @@ BDD_HEM_statdesc_byIndus = BDD_HEM %>%
 
 ```{r ts}
 
-ts_pays_couple_bwd_fwd = function(pays){
-  bdd_selec = BDD_couple_bwd_fwd %>% filter(Lig_Country == pays)
+ts_bdd_pays_couple_bwd_fwd = function(bdd,pays){
+  BDD_bwd_ts<-bdd[["Indic_Bwd_byCountry"]][,link:="Bwd"]
+  BDD_fwd_ts<-bdd[["Indic_Fwd_byCountry"]][,link:="Fwd"]
+  #setnames(BDD_fwd_ts,c("Col_Country","Col_Indus"),c("Lig_Country","Lig_Indus"))
+  #BDD_bwd_fwd_ts<-rbind(BDD_bwd_ts,BDD_fwd_ts)
+  BDD_couple_bwd_fwd_ts = merge(BDD_bwd_ts,BDD_fwd_ts,by = c("Lig_Country","Lig_Indus","year"))
+  colnames(BDD_couple_bwd_fwd_ts) = c("Lig_Country","Lig_Indus","year","value_bwd","link.x","value_fwd","link.y")
+  BDD_couple_bwd_fwd_ts = BDD_couple_bwd_fwd_ts[,c(-5,-7)]
+  bdd_selec = BDD_couple_bwd_fwd_ts %>% filter(Lig_Country == pays)
   bdd_selec = bdd_selec %>% pivot_wider(names_from = Lig_Indus, values_from = c(value_bwd,value_fwd))
-  bdd_selec = bdd_selec %>% select(-Lig_Country)
-  ts_bdd_selec = ts(bdd_selec %>% select(-year),start = 2000,frequency = 1)
-  autoplot(ts_bdd_selec)
-  mod = VARselect(ts_bdd_selec,lag.max = 10)
-  mod$selection
-  varp_best.fit = VAR(ts_bdd_selec, p=1, type = "none")
-  
+  bdd_selec = bdd_selec[,-1]
+  if (bdd_selec$year[1]<2000){
+    bdd_selec = subset(bdd_selec,year<=2000)
+    ts_bdd_selec = ts(bdd_selec[,-1],start = 1965,frequency = 1)
+    autoplot(ts_bdd_selec)
+  } else {
+    ts_bdd_selec = ts(bdd_selec[,-1],start = 2000,frequency = 1)
+    autoplot(ts_bdd_selec)
+  }
 }
-pays = "FRA"
-  bdd_selec = BDD_couple_bwd_fwd %>% filter(Lig_Country == pays)
-  bdd_selec = bdd_selec %>% pivot_wider(names_from = Lig_Indus, values_from = c(value_bwd,value_fwd))
-  bdd_selec = bdd_selec %>% select(-Lig_Country)
-  ts_bdd_selec = ts(bdd_selec %>% select(-year),start = 2000,frequency = 1)
-  typeof(ts_bdd_selec)
-  autoplot(ts_bdd_selec)
-  library(vars)
-  mod = VARselect(ts_bdd_selec,lag.max = 5)
-  mod$selection
-  varp_best.fit = VAR(ts_bdd_selec, p=1, type = "none")
-  roots(varp_best.fit,modulus=TRUE) 
-  summary(varp_best.fit)
-irf1 = irf(varp_best.fit, impulse = "value_bwd_AZ", response = "value_bwd_C1", n.ahead = 5, boot = TRUE, ci=0,95)
-plot(irf1, ylab = "y1", main = "essai")
+
+# vecteur_bdd = c(BASEres_LinkageBwdFwd_A17,BASEres_LinkageBwdFwd_A17,
+#                 BASEres_LinkageBwdFwd_A17,BASEres_LinkageBwdFwd_A17,
+#                 BASEres_LinkageBwdFwd_A17)
+ts_bdd_pays_couple_bwd_fwd(BASEres_LinkageBwdFwd_LRWIOD,"FRA")
+
+
+#   library(vars)
+#   mod = VARselect(ts_bdd_selec,lag.max = 5)
+#   mod$selection
+#   varp_best.fit = VAR(ts_bdd_selec, p=1, type = "none")
+#   
+#   roots(varp_best.fit,modulus=TRUE) 
+#   summary(varp_best.fit)
+# irf1 = irf(varp_best.fit, impulse = "value_bwd_AZ", response = "value_bwd_C1", n.ahead = 5, boot = TRUE, ci=0,95)
+# plot(irf1, ylab = "y1", main = "essai")
 
   
 ```
@@ -301,16 +517,10 @@ Linkage : partie graphs temporels
 # Exploitation des bases : BASEres_LinkageBwdFwd_ECOLE ; BASEres_LinkageBwdFwd_A17 ; BASEres_LinkageBwdFwd_LRWIO 
 
 #### Backward linkage sur base A17
-LinkageBwdFwd_A17_Bwd<-BASEres_LinkageBwdFwd_A17[["Indic_Bwd_byCountry"]][Lig_Country==pays,]
-  
-LinkageBwdFwd_A17_Bwd_tab<-dcast(LinkageBwdFwd_A17_Bwd,Lig_Indus ~ year ,value.var="value") 
-LinkageBwdFwd_A17_Bwd_ttab<-AddRownamesToFirstCol(t(LinkageBwdFwd_A17_Bwd_tab))
-colnames(LinkageBwdFwd_A17_Bwd_ttab)<-LinkageBwdFwd_A17_Bwd_ttab[1,]
-LinkageBwdFwd_A17_Bwd_ttab<-LinkageBwdFwd_A17_Bwd_ttab[-1,]
-LinkageBwdFwd_A17_Bwd_ttab<-setDF(LinkageBwdFwd_A17_Bwd_ttab)
-LinkageBwdFwd_A17_Bwd_ttab<- mutate_all(LinkageBwdFwd_A17_Bwd_ttab, function(x) as.numeric(as.character(x)))
+
 
 evolution_indicateurbwd_pays_A17 = function(pays){
+  setwd("C:/Users/Bendounan Adel/Documents/Projet_methodo_3A/stat_desc_projetmethodo/by_country")
 LinkageBwdFwd_A17_Bwd<-BASEres_LinkageBwdFwd_A17[["Indic_Bwd_byCountry"]][Lig_Country==pays,]
   
 LinkageBwdFwd_A17_Bwd_tab<-dcast(LinkageBwdFwd_A17_Bwd,Lig_Indus ~ year ,value.var="value") 
@@ -325,6 +535,7 @@ LinkageBwdFwd_A17_Bwd_ttab<- mutate_all(LinkageBwdFwd_A17_Bwd_ttab, function(x) 
 List_BR<-colnames(LinkageBwdFwd_A17_Bwd_ttab)[2:18]
 matplot(LinkageBwdFwd_A17_Bwd_ttab$Lig_Indus, LinkageBwdFwd_A17_Bwd_ttab[,2:18],type="b",col= hcl.colors(10, "Temps"),pch=c(16,1),xlab="années",ylab="Indic linkage",main=paste("Backward Linkage de ",paste(pays,"au format A17")))
 legend(x="bottomleft", legend=List_BR, fill =hcl.colors(10, "Temps"))
+dev.print(device = png,file = paste(pays,"_evolution_branche_Bwd.png"),width = 600)
 }
 for (pays in levels(factor(BDD_bwd$Lig_Country))){
   evolution_indicateurbwd_pays_A17(pays)
@@ -333,6 +544,7 @@ for (pays in levels(factor(BDD_bwd$Lig_Country))){
 #### Forward linkage sur base A17
 
 evolution_indicateurfwd_pays_A17 = function(pays){
+  setwd("C:/Users/Bendounan Adel/Documents/Projet_methodo_3A/stat_desc_projetmethodo/by_country")
   LinkageBwdFwd_A17_Fwd<-BASEres_LinkageBwdFwd_A17[["Indic_Fwd_byCountry"]][Lig_Country==pays,]
   
   LinkageBwdFwd_A17_Fwd_tab<-dcast(LinkageBwdFwd_A17_Fwd,Lig_Indus ~ year ,value.var="value") 
@@ -345,10 +557,33 @@ evolution_indicateurfwd_pays_A17 = function(pays){
   List_BR<-colnames(LinkageBwdFwd_A17_Fwd_ttab)[2:18]
   matplot(LinkageBwdFwd_A17_Fwd_ttab$Lig_Indus, LinkageBwdFwd_A17_Fwd_ttab[,2:18],type="b",col= hcl.colors(10, "Temps"),pch=c(16,1),xlab="années",ylab="Indic linkage",main=paste("Forward Linkage de ",paste(pays,"au format A17")))
   legend(x="bottomleft", legend=List_BR, fill =hcl.colors(10, "Temps"))
+  dev.print(device = png,file = paste(pays,"_evolution_branche_Fwd.png"),width = 600)
 }
 for (pays in levels(factor(BDD_bwd$Lig_Country))){
   evolution_indicateurfwd_pays_A17(pays)
 }
+
+# HEm
+evolution_indicateurHEM_WIOD = function(pays){
+  setwd("C:/Users/Bendounan Adel/Documents/Projet_methodo_3A/stat_desc_projetmethodo/by_country")
+  HEM_A17<-Baseres_HEM_A17_WIOD[Lig_Country==pays,]
+HEM_A17_tab<-dcast(HEM_A17,Lig_Indus ~ year ,value.var="Indic_HEM") 
+HEM_A17_ttab<-AddRownamesToFirstCol(t(HEM_A17_tab))
+colnames(HEM_A17_ttab)<-HEM_A17_ttab[1,]
+HEM_A17_ttab<-HEM_A17_ttab[-1,]
+HEM_A17_ttab<-setDF(HEM_A17_ttab)
+HEM_A17_ttab<- mutate_all(HEM_A17_ttab, function(x) as.numeric(as.character(x)))
+
+List_BR<-colnames(HEM_A17_ttab)[2:18]
+matplot(HEM_A17_ttab$Lig_Indus, HEM_A17_ttab[,2:18],type="b",col= hcl.colors(10, "Temps"),pch=c(16,1),xlab="années",ylab="Indic HEM",main=paste("HEM de ",paste(pays,"au format A17")))
+legend(x="bottomleft", legend=List_BR, fill =hcl.colors(10, "Temps"))
+dev.print(device = png,file = paste(pays,"_evolution_branche_HEM.png"),width = 600)
+}
+for (pays in levels(factor(Baseres_HEM_A17_WIOD$Lig_Country))){
+  evolution_indicateurHEM_WIOD(pays)
+}
+
+
 
 # #### Backward linkage sur base ECOLE et sur toute la période
 # 
@@ -580,14 +815,17 @@ stopifnot(exprs = {
 #Rem: Faire une ACP avec en individus les branches et en variables les indicateurs Forward et Backward n'est pas malin du tout ! L'idée est de faire une ACP pour une année donnée avec en individus les pays et en variables les branches !
 
 ######## 2019 ########
-test<-BASEres_LinkageBwdFwd_A17[["Indic_Bwd_byCountry"]][year=="2019",]
-test_PCA <- pivot_wider(data = test, names_from = Lig_Indus, values_from = value)
-test_PCA <- select(test_PCA, - "year")
-data_2019 <- test_PCA %>%
+
+  #setwd("C:/Users/Bendounan Adel/Documents/Projet_methodo_3A/stat_desc_projetmethodo/image_analyse_multi/acp")
+  test<-BASEres_LinkageBwdFwd_A17[["Indic_Bwd_byCountry"]][year=="2019",]
+  test_PCA <- pivot_wider(data = test, names_from = Lig_Indus, values_from = value)
+  test_PCA <- select(test_PCA, - "year")
+  data_2019 <- test_PCA %>%
      remove_rownames() %>%
      column_to_rownames(var = 'Lig_Country')
 
-PCAshiny(data_2019)
+  PCAshiny(data_2019)
+
 
 ######## 2014 #########
 
@@ -633,22 +871,56 @@ PCAshiny(data_2004)
 ###### Code Adel propre #####
 
 ###### ACP sur l'année 2019 ########
+test_bwd = BASEres_LinkageBwdFwd_A17[["Indic_Bwd_byCountry"]][year=="2014",][,link:="Bwd"]
+test_fwd = BASEres_LinkageBwdFwd_A17[["Indic_Fwd_byCountry"]][year=="2014",][,link:="Fwd"]
+test_bwd_dom = BASEres_LinkageBwdFwd_A17[["Indic_Bwd_PartDOM"]][year=="2004",][,link:="Bwd"]
+test_fwd_dom = BASEres_LinkageBwdFwd_A17[["Indic_Fwd_PartDOM"]][year=="2004",][,link:="Fwd"]
+setnames(test_fwd,c("Col_Country","Col_Indus"),c("Lig_Country","Lig_Indus"))
+test_fwd_dom = merge(test_fwd,test_fwd_dom,by = c("Lig_Country","Lig_Indus","year","link"))
+test_fwd_dom = test_fwd_dom %>%
+  mutate(value_Dom = value*Part_Dom,branche_link = paste(Lig_Indus,link,sep = "_"))
+setnames(test_bwd_dom,c("Col_Country","Col_Indus"),c("Lig_Country","Lig_Indus"))
+test_bwd_dom = merge(test_bwd,test_bwd_dom,by = c("Lig_Country","Lig_Indus","year","link"))
+test_bwd_dom = test_bwd_dom %>%
+  mutate(value_Dom = value*Part_Dom,branche_link = paste(Lig_Indus,link,sep = "_"))
 
-test_bwd = BASEres_LinkageBwdFwd_A17[["Indic_Bwd_byCountry"]][year=="2019",][,link:="Bwd"]
-test_fwd = BASEres_LinkageBwdFwd_A17[["Indic_Fwd_byCountry"]][year=="2019",][,link:="Fwd"]
-#setnames(test_fwd,c("Col_Country","Col_Indus"),c("Lig_Country","Lig_Indus"))
+test_bwd_dom <- select(test_bwd_dom, c(-"year",-"Lig_Indus",-"link"))
+test_bwd_dom = dcast(test_bwd_dom,Lig_Country ~ branche_link ,value.var="value_Dom") 
+test_bwd_dom <- test_bwd_dom %>%
+     remove_rownames() %>%
+     column_to_rownames(var = 'Lig_Country')
+
+PCAshiny(test_bwd_dom)
+
+test_fwd_dom <- select(test_fwd_dom, c(-"year",-"Lig_Indus",-"link"))
+test_fwd_dom = dcast(test_fwd_dom,Lig_Country ~ branche_link ,value.var="value_Dom") 
+test_fwd_dom <- test_fwd_dom %>%
+     remove_rownames() %>%
+     column_to_rownames(var = 'Lig_Country')
+
+PCAshiny(test_fwd_dom)
+
+setnames(test_fwd,c("Col_Country","Col_Indus"),c("Lig_Country","Lig_Indus"))
 LinkageBwdFwd_A17_2019<-rbind(test_bwd,test_fwd)
 LinkageBwdFwd_A17_2019 = LinkageBwdFwd_A17_2019 %>%
   mutate(branche_link = paste(Lig_Indus,link,sep = "_"))
 
 test_bwd_fwd_PCA_2019 <- select(LinkageBwdFwd_A17_2019, c(-"year",-"Lig_Indus",-"link"))
-
 test_bwd_fwd_PCA_2019 = dcast(test_bwd_fwd_PCA_2019,Lig_Country ~ branche_link ,value.var="value") 
 data_bwd_fwd_2019 <- test_bwd_fwd_PCA_2019 %>%
      remove_rownames() %>%
      column_to_rownames(var = 'Lig_Country')
 
 PCAshiny(data_bwd_fwd_2019)
+
+test_HEM = Baseres_HEM_A17_WIOD[Baseres_HEM_A17_WIOD$year=="2004",]
+#setnames(test_fwd,c("Col_Country","Col_Indus"),c("Lig_Country","Lig_Indus"))
+test_HEM_PCA = dcast(test_HEM,Lig_Country ~ Lig_Indus ,value.var="Indic_HEM") 
+test_HEM_PCA <- test_HEM_PCA %>%
+     remove_rownames() %>%
+     column_to_rownames(var = 'Lig_Country')
+
+PCAshiny(test_HEM_PCA)
 
 ####### ACP sur l'année 2014 #########
 
@@ -707,9 +979,17 @@ PCAshiny(data_bwd_fwd_2004)
 
 ################# AFM (gp formé par année) #################
 
-test_afm_bwd<-BASEres_LinkageBwdFwd_A17[["Indic_Bwd_byCountry"]][year=="2010" | year=="2011" | year=="2012" | year=="2013" | year=="2014" | year=="2015" | year=="2016" | year=="2017" | year=="2018" | year=="2019",][,link:="Bwd"]
-test_afm_fwd<-BASEres_LinkageBwdFwd_A17[["Indic_Fwd_byCountry"]][year=="2010" | year=="2011" | year=="2012" | year=="2013" | year=="2014" | year=="2015" | year=="2016" | year=="2017" | year=="2018" | year=="2019",][,link:="Fwd"]
-#setnames(test_afm_fwd,c("Col_Country","Col_Indus"),c("Lig_Country","Lig_Indus"))
+# newDF <- data_AFM[,c("AZ_Bwd_2010","C1_Bwd_2010","C2_Bwd_2010","C3_Bwd_2010","C4_Bwd_2010","C5_Bwd_2010","DE_Bwd_2010","FZ_Bwd_2010","GZ_Bwd_2010","HZ_Bwd_2010","IZ_Bwd_2010","JZ_Bwd_2010","KZ_Bwd_2010","LZ_Bwd_2010","MN_Bwd_2010","OQ_Bwd_2010","RU_Bwd_2010","AZ_Fwd_2010","C1_Fwd_2010","C2_Fwd_2010","C3_Fwd_2010","C4_Fwd_2010","C5_Fwd_2010","DE_Fwd_2010","FZ_Fwd_2010","GZ_Fwd_2010","HZ_Fwd_2010","IZ_Fwd_2010","JZ_Fwd_2010","KZ_Fwd_2010","LZ_Fwd_2010","MN_Fwd_2010","OQ_Fwd_2010","RU_Fwd_2010","AZ_Bwd_2011","C1_Bwd_2011","C2_Bwd_2011","C3_Bwd_2011","C4_Bwd_2011","C5_Bwd_2011","DE_Bwd_2011","FZ_Bwd_2011","GZ_Bwd_2011","HZ_Bwd_2011","IZ_Bwd_2011","JZ_Bwd_2011","KZ_Bwd_2011","LZ_Bwd_2011","MN_Bwd_2011","OQ_Bwd_2011","RU_Bwd_2011","AZ_Fwd_2011","C1_Fwd_2011","C2_Fwd_2011","C3_Fwd_2011","C4_Fwd_2011","C5_Fwd_2011","DE_Fwd_2011","FZ_Fwd_2011","GZ_Fwd_2011","HZ_Fwd_2011","IZ_Fwd_2011","JZ_Fwd_2011","KZ_Fwd_2011","LZ_Fwd_2011","MN_Fwd_2011","OQ_Fwd_2011","RU_Fwd_2011","AZ_Bwd_2012","C1_Bwd_2012","C2_Bwd_2012","C3_Bwd_2012","C4_Bwd_2012","C5_Bwd_2012","DE_Bwd_2012","FZ_Bwd_2012","GZ_Bwd_2012","HZ_Bwd_2012","IZ_Bwd_2012","JZ_Bwd_2012","KZ_Bwd_2012","LZ_Bwd_2012","MN_Bwd_2012","OQ_Bwd_2012","RU_Bwd_2012","AZ_Fwd_2012","C1_Fwd_2012","C2_Fwd_2012","C3_Fwd_2012","C4_Fwd_2012","C5_Fwd_2012","DE_Fwd_2012","FZ_Fwd_2012","GZ_Fwd_2012","HZ_Fwd_2012","IZ_Fwd_2012","JZ_Fwd_2012","KZ_Fwd_2012","LZ_Fwd_2012","MN_Fwd_2012","OQ_Fwd_2012","RU_Fwd_2012","AZ_Bwd_2013","C1_Bwd_2013","C2_Bwd_2013","C3_Bwd_2013","C4_Bwd_2013","C5_Bwd_2013","DE_Bwd_2013","FZ_Bwd_2013","GZ_Bwd_2013","HZ_Bwd_2013","IZ_Bwd_2013","JZ_Bwd_2013","KZ_Bwd_2013","LZ_Bwd_2013","MN_Bwd_2013","OQ_Bwd_2013","RU_Bwd_2013","AZ_Fwd_2013","C1_Fwd_2013","C2_Fwd_2013","C3_Fwd_2013","C4_Fwd_2013","C5_Fwd_2013","DE_Fwd_2013","FZ_Fwd_2013","GZ_Fwd_2013","HZ_Fwd_2013","IZ_Fwd_2013","JZ_Fwd_2013","KZ_Fwd_2013","LZ_Fwd_2013","MN_Fwd_2013","OQ_Fwd_2013","RU_Fwd_2013","AZ_Bwd_2014","C1_Bwd_2014","C2_Bwd_2014","C3_Bwd_2014","C4_Bwd_2014","C5_Bwd_2014","DE_Bwd_2014","FZ_Bwd_2014","GZ_Bwd_2014","HZ_Bwd_2014","IZ_Bwd_2014","JZ_Bwd_2014","KZ_Bwd_2014","LZ_Bwd_2014","MN_Bwd_2014","OQ_Bwd_2014","RU_Bwd_2014","AZ_Fwd_2014","C1_Fwd_2014","C2_Fwd_2014","C3_Fwd_2014","C4_Fwd_2014","C5_Fwd_2014","DE_Fwd_2014","FZ_Fwd_2014","GZ_Fwd_2014","HZ_Fwd_2014","IZ_Fwd_2014","JZ_Fwd_2014","KZ_Fwd_2014","LZ_Fwd_2014","MN_Fwd_2014","OQ_Fwd_2014","RU_Fwd_2014","AZ_Bwd_2015","C1_Bwd_2015","C2_Bwd_2015","C3_Bwd_2015","C4_Bwd_2015","C5_Bwd_2015","DE_Bwd_2015","FZ_Bwd_2015","GZ_Bwd_2015","HZ_Bwd_2015","IZ_Bwd_2015","JZ_Bwd_2015","KZ_Bwd_2015","LZ_Bwd_2015","MN_Bwd_2015","OQ_Bwd_2015","RU_Bwd_2015","AZ_Fwd_2015","C1_Fwd_2015","C2_Fwd_2015","C3_Fwd_2015","C4_Fwd_2015","C5_Fwd_2015","DE_Fwd_2015","FZ_Fwd_2015","GZ_Fwd_2015","HZ_Fwd_2015","IZ_Fwd_2015","JZ_Fwd_2015","KZ_Fwd_2015","LZ_Fwd_2015","MN_Fwd_2015","OQ_Fwd_2015","RU_Fwd_2015","AZ_Bwd_2016","C1_Bwd_2016","C2_Bwd_2016","C3_Bwd_2016","C4_Bwd_2016","C5_Bwd_2016","DE_Bwd_2016","FZ_Bwd_2016","GZ_Bwd_2016","HZ_Bwd_2016","IZ_Bwd_2016","JZ_Bwd_2016","KZ_Bwd_2016","LZ_Bwd_2016","MN_Bwd_2016","OQ_Bwd_2016","RU_Bwd_2016","AZ_Fwd_2016","C1_Fwd_2016","C2_Fwd_2016","C3_Fwd_2016","C4_Fwd_2016","C5_Fwd_2016","DE_Fwd_2016","FZ_Fwd_2016","GZ_Fwd_2016","HZ_Fwd_2016","IZ_Fwd_2016","JZ_Fwd_2016","KZ_Fwd_2016","LZ_Fwd_2016","MN_Fwd_2016","OQ_Fwd_2016","RU_Fwd_2016","AZ_Bwd_2017","C1_Bwd_2017","C2_Bwd_2017","C3_Bwd_2017","C4_Bwd_2017","C5_Bwd_2017","DE_Bwd_2017","FZ_Bwd_2017","GZ_Bwd_2017","HZ_Bwd_2017","IZ_Bwd_2017","JZ_Bwd_2017","KZ_Bwd_2017","LZ_Bwd_2017","MN_Bwd_2017","OQ_Bwd_2017","RU_Bwd_2017","AZ_Fwd_2017","C1_Fwd_2017","C2_Fwd_2017","C3_Fwd_2017","C4_Fwd_2017","C5_Fwd_2017","DE_Fwd_2017","FZ_Fwd_2017","GZ_Fwd_2017","HZ_Fwd_2017","IZ_Fwd_2017","JZ_Fwd_2017","KZ_Fwd_2017","LZ_Fwd_2017","MN_Fwd_2017","OQ_Fwd_2017","RU_Fwd_2017","AZ_Bwd_2018","C1_Bwd_2018","C2_Bwd_2018","C3_Bwd_2018","C4_Bwd_2018","C5_Bwd_2018","DE_Bwd_2018","FZ_Bwd_2018","GZ_Bwd_2018","HZ_Bwd_2018","IZ_Bwd_2018","JZ_Bwd_2018","KZ_Bwd_2018","LZ_Bwd_2018","MN_Bwd_2018","OQ_Bwd_2018","RU_Bwd_2018","AZ_Fwd_2018","C1_Fwd_2018","C2_Fwd_2018","C3_Fwd_2018","C4_Fwd_2018","C5_Fwd_2018","DE_Fwd_2018","FZ_Fwd_2018","GZ_Fwd_2018","HZ_Fwd_2018","IZ_Fwd_2018","JZ_Fwd_2018","KZ_Fwd_2018","LZ_Fwd_2018","MN_Fwd_2018","OQ_Fwd_2018","RU_Fwd_2018","AZ_Bwd_2019","C1_Bwd_2019","C2_Bwd_2019","C3_Bwd_2019","C4_Bwd_2019","C5_Bwd_2019","DE_Bwd_2019","FZ_Bwd_2019","GZ_Bwd_2019","HZ_Bwd_2019","IZ_Bwd_2019","JZ_Bwd_2019","KZ_Bwd_2019","LZ_Bwd_2019","MN_Bwd_2019","OQ_Bwd_2019","RU_Bwd_2019","AZ_Fwd_2019","C1_Fwd_2019","C2_Fwd_2019","C3_Fwd_2019","C4_Fwd_2019","C5_Fwd_2019","DE_Fwd_2019","FZ_Fwd_2019","GZ_Fwd_2019","HZ_Fwd_2019","IZ_Fwd_2019","JZ_Fwd_2019","KZ_Fwd_2019","LZ_Fwd_2019","MN_Fwd_2019","OQ_Fwd_2019","RU_Fwd_2019")]
+# res.MFA<-MFA(newDF,group=c(34,34,34,34,34,34,34,34,34,34), type=c("s","s","s","s","s","s","s","s","s","s"),ind.sup=c(19),name.group=c("2010","2011","2012","2013","2014","2015","2016","2017","2018","2019"),graph=FALSE)
+# plot.MFA(res.MFA, choix="ind",partial='all',lab.par=FALSE,habillage='group',title="Graphe des individus AFM 2010-2019",cex=0.85,cex.main=0.85,cex.axis=0.85)
+# plot.MFA(res.MFA, choix="var",select='cos2 0',habillage='group',title="Cercle des corrélations AFM 2010-2019")
+# plot.MFA(res.MFA, choix="group",title="Graphe des groupes AFM 2010-2019")
+# plot.MFA(res.MFA, choix="axes",title="Graphe des axes partiels AFM 2010-2019",habillage='group')
+link = "bwd"
+test_afm_bwd<-BASEres_LinkageBwdFwd_A17[["Indic_Bwd_byCountry"]][,link:="Bwd"]
+link = "fwd"
+test_afm_fwd<-BASEres_LinkageBwdFwd_A17[["Indic_Fwd_byCountry"]][,link:="Fwd"]
+setnames(test_afm_fwd,c("Col_Country","Col_Indus"),c("Lig_Country","Lig_Indus"))
 test_afm<-rbind(test_afm_bwd,test_afm_fwd)
 
 # statistiques_desc = test_afm %>%
@@ -722,54 +1002,67 @@ test_afm<-rbind(test_afm_bwd,test_afm_fwd)
 
 #missing_va = sum(is.na(value))
 #libel_min = paste(Lig_Indus[min(value)],c(Lig_Indus[quantile(value,probs = 0.07)],Lig_Indus[quantile(value,probs = 0.13)]))
-test_AFM <- pivot_wider(data = test_afm, names_from = c(Lig_Indus,link,year), values_from = value)
+test_AFM <- pivot_wider(data = test_afm_bwd, names_from = c(Lig_Indus,link,year), values_from = value)
 data_AFM <- test_AFM %>%
      remove_rownames() %>%
      column_to_rownames(var = 'Lig_Country')
 
-sd_byvar = skim(data_AFM)
+annee = 2000:2020
+annee = as.character(annee)
+library(factoextra)
+
+
+res.MFA<-MFA(data_AFM,group=rep(17,21), type=rep("s",21),ind.sup = c(6,14,19),name.group=annee,graph=FALSE)
+summary(res.MFA)
+
+
+#### Interactive graph
+# liste = plotMFApartial(res.MFA)
+# plot(res,choix="ind",habillage = "Terroir")
+fviz_screeplot(res.MFA)
+# fviz_mfa_var(res.MFA, "group")
+# fviz_mfa_var(res.MFA, "quanti.var", palette = "rainbow", 
+#              col.var.sup = "violet", repel = TRUE,
+#              geom = c("point", "text"), legend = "bottom")
+fviz_contrib (res.MFA, choice = "quanti.var", axes = 1, top = 20,
+             palette = "rainbow",title = paste("20 plus hautes contributions à la dim 1 de l'AFM sur les",link))
+fviz_cos2(res.MFA, choice = "quanti.var", axes = 1, top = 20,
+             palette = "rainbow",title = paste("20 plus hauts cos2 à la dim 1 de l'AFM sur les",link))
+fviz_contrib (res.MFA, choice = "quanti.var", axes = 2, top = 20,
+             palette = "rainbow",title = paste("20 plus hautes contributions à la dim 2 de l'AFM sur les",link))
+fviz_cos2(res.MFA, choice = "quanti.var", axes = 2, top = 20,
+             palette = "rainbow",title = paste("20 plus hauts cos2 à la dim 2 de l'AFM sur les",link))
+fviz_contrib (res.MFA, choice = "quanti.var", axes = 3, top = 20,
+             palette = "rainbow",title = paste("20 plus hautes contributions à la dim 3 de l'AFM sur les",link))
+fviz_cos2(res.MFA, choice = "quanti.var", axes = 3, top = 20,
+             palette = "rainbow",title = paste("20 plus hauts cos2 à la dim 3 de l'AFM sur les",link))
+
+fviz_contrib (res.MFA, "group", axes = 3,title = paste("Contributions par groupe à la dim 3 de l'AFM sur les",link))
+fviz_contrib (res.MFA, "group", axes = 2,title = paste("Contributions par groupe à la dim 2 de l'AFM sur les",link))
+fviz_cos2 (res.MFA, "group", axes = 3,title = paste("Cos2 par groupe à la dim 3 de l'AFM sur les",link))
+fviz_cos2 (res.MFA, "group", axes = 2,title = paste("Cos2 par groupe à la dim 2 de l'AFM sur les",link))
+fviz_contrib (res.MFA, "group", axes = 1,title = paste("Contributions par groupe à la dim 1 de l'AFM sur les",link))
+fviz_cos2 (res.MFA, "group", axes = 1,title = paste("Cos2 par groupe à la dim 1 de l'AFM sur les",link))
+# fviz_mfa_axes (res.MFA)
+paste("Graphe des individus AFM 2000-2020",link)
+
+plot.MFA(res.MFA, choix="ind",lab.par=FALSE,habillage="group",title=paste("Graphe des individus AFM 2000-2020",link),cex=0.85,cex.main=0.85,partial = "all",cex.axis=0.85)
+plot.MFA(res.MFA, choix="var",select='cos2 0',habillage='group',title= paste("Cercle des corrélations AFM 2000-2020",link))
+plot.MFA(res.MFA, choix="group",title=paste("Graphe des groupes AFM 2000-2020",link),cex=0.25,cex.main=0.8,cex.axis=0.8)
+plot.MFA(res.MFA, choix="axes",title=paste("Graphe des axes partiels AFM 2000-2020",link),habillage='group',max.overlaps = 200)
+S
+
+# sd_byvar = skim(data_AFM)
 # data_AFM_t = t(data_AFM)
 # sd_bycountry = skim(data_AFM_t)
 
 MFAshiny(data_AFM)
 
-groupe <- c(rep(17,20))
-
-res.mfa <- MFA (data_AFM, groupe, type = rep("s",length(groupe)), ind.sup = NULL, name.group = NULL, num.group.sup = NULL, graph = TRUE)
-
-fviz_screeplot(res.mfa)
-
-group <- get_mfa_var(res.mfa, "group")
-group
-
-fviz_mfa_var(res.mfa, "group")
-
-# Contribution to the first dimension
-fviz_contrib(res.mfa, "group", axes = 1)
-# Contribution to the second dimension
-fviz_contrib(res.mfa, "group", axes = 2)
-
-fviz_mfa_var(res.mfa, "quanti.var", palette = "jco", 
-             col.var.sup = "violet", repel = TRUE)
-
-fviz_contrib(res.mfa, choice = "quanti.var", axes = 1, top = 20,
-             palette = "jco")
-
-
-fviz_mfa_var(res.mfa, "quanti.var", col.var = "contrib", 
-             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"), 
-             col.var.sup = "violet", repel = TRUE,
-             geom = c("point", "text"))
-
-fviz_mfa_ind(res.mfa, col.ind = "cos2", 
-             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
-             repel = TRUE)
-
 ################# AFM (gp formé par variable) #################
 
 test_afm_bwd<-BASEres_LinkageBwdFwd_ECOLE[["Indic_Bwd_byCountry"]][year=="2010" | year=="2011" | year=="2012" | year=="2013" | year=="2014" ,][,link:="Bwd"]
 test_afm_fwd<-BASEres_LinkageBwdFwd_ECOLE[["Indic_Fwd_byCountry"]][year=="2010" | year=="2011" | year=="2012" | year=="2013" | year=="2014" ,][,link:="Fwd"]
-setnames(test_afm_fwd,c("Col_Country","Col_Indus"),c("Lig_Country","Lig_Indus"))
+#setnames(test_afm_fwd,c("Col_Country","Col_Indus"),c("Lig_Country","Lig_Indus"))
 test_afm<-rbind(test_afm_bwd,test_afm_fwd)
 
 test_AFM <- pivot_wider(data = test_afm, names_from = c(Lig_Indus,link,year), values_from = value)
@@ -791,6 +1084,53 @@ MFAshiny(data_AFM)
 # }
 # acp_bwd_annee("2018")
 
+```
+```{r}
+#### Backward linkage sur base A17
+# km_annee = function(annee){
+#   LinkageBwdFwd_A17_Bwd<-BASEres_LinkageBwdFwd_A17[["Indic_Bwd_byCountry"]][Lig_Country=="FRA" & year==annee,][,link:="Bwd"]
+# LinkageBwdFwd_A17_Fwd<-BASEres_LinkageBwdFwd_A17[["Indic_Fwd_byCountry"]][Lig_Country=="FRA" & year==annee,][,link:="Fwd"]
+# #setnames(LinkageBwdFwd_A17_Fwd,c("Col_Country","Col_Indus"),c("Lig_Country","Lig_Indus"))
+# LinkageBwdFwd_A17<-rbind(LinkageBwdFwd_A17_Bwd,LinkageBwdFwd_A17_Fwd)
+# 
+# LinkageBwdFwd_A17_tab<-dcast(LinkageBwdFwd_A17,Lig_Indus ~ link,value.var="value")
+# 
+# res.km <- kmeans(scale(LinkageBwdFwd_A17_tab[,c(2:3)]), 4, nstart = 10)
+# LinkageBwdFwd_A17_tab$cluster <- res.km$cluster
+# data_clustering = LinkageBwdFwd_A17_tab[,c(-2,-3)]
+# colnames(data_clustering) = c("Lig_Indus",as.character(annee))
+# return(data_clustering)
+# }
+# data_cluster = km_annee(2000)
+# for (k in 2001:2019){
+#   data_cluster = merge(data_cluster,km_annee(k),by = "Lig_Indus")
+# }
+# data_cluster = t(data_cluster)
+# colnames(data_cluster) = data_cluster[1,]
+# data_cluster = data_cluster[-1,]
+# data_cluster = apply(data_cluster,c(1,2),as.numeric)
+# Lig_Indus = rownames(data_cluster)
+# data_cluster = cbind(Lig_Indus,data_cluster)
+# 
+# List_BR<-colnames(data_cluster)[2:18]
+# matplot(data_cluster[,1], data_cluster[,2:18],type="b",col= hcl.colors(10, "Temps"),pch=c(16,1),xlab="années",ylab="Indic linkage",main=paste("Backward Linkage de ",paste(pays,"au format A17")))
+# legend(x="bottomleft", legend=List_BR, fill =hcl.colors(10, "Temps"))
+# # dev.print(device = png,file = paste(pays,"_evolution_branche_Bwd.png"),width = 600)
+# 
+# LinkageBwdFwd_A17_Bwd<-BASEres_LinkageBwdFwd_A17[["Indic_Bwd_byCountry"]][Lig_Country=="FRA",]
+#   
+# LinkageBwdFwd_A17_Bwd_tab<-dcast(LinkageBwdFwd_A17_Bwd,Lig_Indus ~ year ,value.var="value") 
+# LinkageBwdFwd_A17_Bwd_ttab<-AddRownamesToFirstCol(t(LinkageBwdFwd_A17_Bwd_tab))
+# colnames(LinkageBwdFwd_A17_Bwd_ttab)<-LinkageBwdFwd_A17_Bwd_ttab[1,]
+# LinkageBwdFwd_A17_Bwd_ttab<-LinkageBwdFwd_A17_Bwd_ttab[-1,]
+# LinkageBwdFwd_A17_Bwd_ttab<-setDF(LinkageBwdFwd_A17_Bwd_ttab)
+# LinkageBwdFwd_A17_Bwd_ttab<- mutate_all(LinkageBwdFwd_A17_Bwd_ttab, function(x) as.numeric(as.character(x)))
+# 
+# 
+# List_BR<-colnames(LinkageBwdFwd_A17_Bwd_ttab)[2:18]
+# matplot(LinkageBwdFwd_A17_Bwd_ttab$Lig_Indus, LinkageBwdFwd_A17_Bwd_ttab[,2:18],type="b",col= hcl.colors(10, "Temps"),pch=c(16,1),xlab="années",ylab="Indic linkage",main=paste("Backward Linkage de ",paste(pays,"au format A17")))
+# legend(x="bottomleft", legend=List_BR, fill =hcl.colors(10, "Temps"))
+# dev.print(device = png,file = paste(pays,"_evolution_branche_Bwd.png"),width = 600)
 ```
 
 
