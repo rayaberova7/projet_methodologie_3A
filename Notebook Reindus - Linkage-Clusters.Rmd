@@ -389,6 +389,191 @@ A faire:
 - Pareil avec les autres pays (2019,2014)
 - Parmi les branches qui se distinguent, comparaison entre pays et sur le temps !
 
+Croisement Bwd et Fwd sur 2019 (base A17)
+
+```{r}
+# Chargement des résultats sur les linkage backward et forward
+
+BASEres_LinkageBwdFwd_ECOLE<-readRDS("C:/Users/rayab/OneDrive/Bureau/ENSAI 3A/projet/new/nouvelles_donnees/RESULT_LinkageBwdFwd_ECOLE.rds")
+BASEres_LinkageBwdFwd_A17<-readRDS("C:/Users/rayab/OneDrive/Bureau/ENSAI 3A/projet/new/nouvelles_donnees/RESULT_LinkageBwdFwd_A17.rds")
+BASEres_LinkageBwdFwd_LRWIOD<-readRDS("C:/Users/rayab/OneDrive/Bureau/ENSAI 3A/projet/new/nouvelles_donnees/RESULT_LinkageBwdFwd_LRWIOD.rds")
+```
+
+
+
+Croisement Bwd et Fwd sur 2019 (base A17)
+
+```{r}
+auto_croisementbwdfwd <- function(pays, annee){
+  
+LinkageBwdFwd_A17_Bwd<-BASEres_LinkageBwdFwd_A17[["Indic_Bwd_byCountry"]][Lig_Country==pays & year==annee,][,link:="Bwd"]
+LinkageBwdFwd_A17_Fwd<-BASEres_LinkageBwdFwd_A17[["Indic_Fwd_byCountry"]][Col_Country==pays & year==annee,][,link:="Fwd"]
+setnames(LinkageBwdFwd_A17_Fwd,c("Col_Country","Col_Indus"),c("Lig_Country","Lig_Indus"))
+LinkageBwdFwd_A17<-rbind(LinkageBwdFwd_A17_Bwd,LinkageBwdFwd_A17_Fwd)
+
+LinkageBwdFwd_A17_tab<-dcast(LinkageBwdFwd_A17,Lig_Indus ~ link,value.var="value")
+
+res.km <- kmeans(scale(LinkageBwdFwd_A17_tab[,c(2:3)]), 4, nstart = 10)
+LinkageBwdFwd_A17_tab$cluster <- res.km$cluster
+
+p<-ggplot(LinkageBwdFwd_A17_tab, aes(x=Bwd, y=Fwd, col = factor(cluster))) +
+  geom_point(size = 2, alpha = 0.8, position = "jitter") + # Show dots
+  geom_label(
+    label=LinkageBwdFwd_A17_tab$Lig_Indus, 
+    nudge_x = 0.005, nudge_y = 0.005, 
+    check_overlap = T
+  )
+p+geom_hline(data=LinkageBwdFwd_A17_tab,yintercept=mean(LinkageBwdFwd_A17_tab$Fwd))+geom_vline(data=LinkageBwdFwd_A17_tab,xintercept=mean(LinkageBwdFwd_A17_tab$Bwd))+labs(color = "Cluster de l'année demandée") +ggtitle(c(pays,annee))
+  
+}
+
+```
+
+
+Croisements sur plusieurs pays et années
+liste des pays : AUS AUT BEL BRA CAN CHN DEU DNK ESP FIN FRA GBR GRC IND IRL ITA JPN KOR MEX NLD PRT ROW SWE USA 
+```{r}
+auto_croisementbwdfwd("AUS", 2019)
+auto_croisementbwdfwd("AUT", 2019)
+auto_croisementbwdfwd("BEL", 2019)
+auto_croisementbwdfwd("BRA", 2019)
+auto_croisementbwdfwd("CAN", 2019)
+auto_croisementbwdfwd("CHN", 2019)
+auto_croisementbwdfwd("DEU", 2019)
+auto_croisementbwdfwd("DNK", 2019)
+auto_croisementbwdfwd("ESP", 2019)
+auto_croisementbwdfwd("FIN", 2019)
+auto_croisementbwdfwd("FRA", 2019)
+auto_croisementbwdfwd("GBR", 2019)
+auto_croisementbwdfwd("GRC", 2019)
+auto_croisementbwdfwd("IND", 2019)
+auto_croisementbwdfwd("IRL", 2019)
+auto_croisementbwdfwd("ITA", 2019)
+auto_croisementbwdfwd("JPN", 2019)
+auto_croisementbwdfwd("KOR", 2019)
+auto_croisementbwdfwd("MEX", 2019)
+auto_croisementbwdfwd("NLD", 2019)
+auto_croisementbwdfwd("PRT", 2019)
+auto_croisementbwdfwd("ROW", 2019)
+auto_croisementbwdfwd("SWE", 2019)
+auto_croisementbwdfwd("USA", 2019)
+```
+
+```{r}
+auto_croisementbwdfwddom <- function(pays, annee){
+  
+BDD_bwd<-BASEres_LinkageBwdFwd_A17[["Indic_Bwd_byCountry"]][Lig_Country==pays & year==annee,][,link:="Bwd"]
+BDD_fwd<-BASEres_LinkageBwdFwd_A17[["Indic_Fwd_byCountry"]][Col_Country==pays & year==annee,][,link:="Fwd"]
+setnames(BDD_fwd,c("Col_Country","Col_Indus"),c("Lig_Country","Lig_Indus"))
+BDD_bwd_fwd<-rbind(BDD_bwd,BDD_fwd)
+
+BDD_Dom_bwd<-BASEres_LinkageBwdFwd_A17[["Indic_Bwd_PartDOM"]][Col_Country==pays & year==annee,][,link:="Bwd"]
+BDD_Dom_fwd<-BASEres_LinkageBwdFwd_A17[["Indic_Fwd_PartDOM"]][Lig_Country==pays & year==annee,][,link:="Fwd"]
+setnames(BDD_Dom_bwd,c("Col_Country","Col_Indus"),c("Lig_Country","Lig_Indus"))
+BDD_Dom_bwd_fwd<-rbind(BDD_Dom_bwd,BDD_Dom_fwd)
+
+BDD_A17 = merge(BDD_bwd_fwd,BDD_Dom_bwd_fwd,by = c("Lig_Country","Lig_Indus","year","link"))
+BDD_A17 = BDD_A17 %>%
+  mutate(valueDom = value*Part_Dom)
+  
+BDD_A17_tab<-dcast(BDD_A17,Lig_Indus ~ link,value.var="valueDom")
+
+res.km <- kmeans(scale(BDD_A17_tab[,c(2:3)]), 4, nstart = 10)
+BDD_A17_tab$cluster <- res.km$cluster
+
+p<-ggplot(BDD_A17_tab, aes(x=Bwd, y=Fwd, col = factor(cluster))) +
+  geom_point(size = 2, alpha = 0.8, position = "jitter") + # Show dots
+  geom_label(
+    label=BDD_A17_tab$Lig_Indus, 
+    nudge_x = 0.005, nudge_y = 0.005, 
+    check_overlap = T
+  )
+p+geom_hline(data=BDD_A17_tab,yintercept=mean(BDD_A17_tab$Fwd))+geom_vline(data=BDD_A17_tab,xintercept=mean(BDD_A17_tab$Bwd))+labs(color = "Cluster de l'année demandée") +ggtitle(c(pays,annee))
+  
+}
+
+```
+
+```{r}
+auto_croisementbwdfwddom("FRA", 2019)
+auto_croisementbwdfwd("FRA", 2019)
+
+```
+
+
+```{r}
+#l'année de reference est celui avec lequel on va comparer
+auto_croisementbwdfwdcomparaison <- function(pays, annee_ref, annee){
+  
+LinkageBwdFwd_A17_Bwd<-BASEres_LinkageBwdFwd_A17[["Indic_Bwd_byCountry"]][Lig_Country==pays & year==annee,][,link:="Bwd"]
+LinkageBwdFwd_A17_Fwd<-BASEres_LinkageBwdFwd_A17[["Indic_Fwd_byCountry"]][Col_Country==pays & year==annee,][,link:="Fwd"]
+setnames(LinkageBwdFwd_A17_Fwd,c("Col_Country","Col_Indus"),c("Lig_Country","Lig_Indus"))
+LinkageBwdFwd_A17<-rbind(LinkageBwdFwd_A17_Bwd,LinkageBwdFwd_A17_Fwd)
+
+LinkageBwdFwd_A17_tab<-dcast(LinkageBwdFwd_A17,Lig_Indus ~ link,value.var="value")
+
+#année de ref
+LinkageBwdFwd_A17_Bwd_ref<-BASEres_LinkageBwdFwd_A17[["Indic_Bwd_byCountry"]][Lig_Country==pays & year==annee_ref,][,link:="Bwd"]
+LinkageBwdFwd_A17_Fwd_ref<-BASEres_LinkageBwdFwd_A17[["Indic_Fwd_byCountry"]][Col_Country==pays & year==annee_ref,][,link:="Fwd"]
+setnames(LinkageBwdFwd_A17_Fwd_ref,c("Col_Country","Col_Indus"),c("Lig_Country_ref","Lig_Indus_ref"))
+setnames(LinkageBwdFwd_A17_Bwd_ref,c("Lig_Country","Lig_Indus"),c("Lig_Country_ref","Lig_Indus_ref"))
+LinkageBwdFwd_A17_ref<-rbind(LinkageBwdFwd_A17_Bwd_ref,LinkageBwdFwd_A17_Fwd_ref)
+
+LinkageBwdFwd_A17_tab_ref<-dcast(LinkageBwdFwd_A17_ref,Lig_Indus_ref ~ link,value.var="value")
+setnames(LinkageBwdFwd_A17_tab_ref, c("Bwd","Fwd"), c("Bwd_ref","Fwd_ref"))
+
+
+LinkageBwdFwd_A17_tab <- cbind(LinkageBwdFwd_A17_tab, LinkageBwdFwd_A17_tab_ref)
+
+res.kmr <- kmeans(scale(LinkageBwdFwd_A17_tab[,c(5:6)]), 4, nstart = 10)
+LinkageBwdFwd_A17_tab$cluster_ref <- res.kmr$cluster
+
+res.km <- kmeans(scale(LinkageBwdFwd_A17_tab[,c(2:3)]),centers = res.kmr$centers, 4, nstart = 10)
+LinkageBwdFwd_A17_tab$cluster <- res.km$cluster
+
+p<-ggplot(LinkageBwdFwd_A17_tab, aes(x=Bwd, y=Fwd, col = factor(cluster), shape = factor(cluster_ref))) +
+  geom_point(size = 2, alpha = 0.8, position = "jitter") + # Show dots
+  geom_label(
+    label=LinkageBwdFwd_A17_tab$Lig_Indus, 
+    nudge_x = 0.005, nudge_y = 0.005, 
+    check_overlap = T
+  )
+p+geom_hline(yintercept=mean(LinkageBwdFwd_A17_tab$Fwd))+geom_vline(xintercept=mean(LinkageBwdFwd_A17_tab$Bwd))+ labs(color = "Cluster de l'année demandée")+ labs(shape = "Cluster de l'année de référence")+ggtitle(c(pays,annee))
+  
+}
+
+```
+```{r}
+auto_croisementbwdfwdcomparaison("AUS", 2014, 2019)
+auto_croisementbwdfwdcomparaison("AUT", 2014, 2019)
+auto_croisementbwdfwdcomparaison("BEL", 2014, 2019)
+auto_croisementbwdfwdcomparaison("BRA", 2014, 2019)
+auto_croisementbwdfwdcomparaison("CAN", 2014, 2019)
+auto_croisementbwdfwdcomparaison("CHN", 2014, 2019)
+auto_croisementbwdfwdcomparaison("DEU", 2014, 2019)
+auto_croisementbwdfwdcomparaison("DNK", 2014, 2019)
+auto_croisementbwdfwdcomparaison("ESP", 2014, 2019)
+auto_croisementbwdfwdcomparaison("FIN", 2014, 2019)
+auto_croisementbwdfwdcomparaison("FRA", 2014, 2019)
+
+auto_croisementbwdfwdcomparaison("FRA", 2004, 2014)
+
+auto_croisementbwdfwdcomparaison("GBR", 2014, 2019)
+auto_croisementbwdfwdcomparaison("GRC", 2014, 2019)
+auto_croisementbwdfwdcomparaison("IND", 2014, 2019)
+auto_croisementbwdfwdcomparaison("IRL", 2014, 2019)
+auto_croisementbwdfwdcomparaison("ITA", 2014, 2019)
+auto_croisementbwdfwdcomparaison("JPN", 2014, 2019)
+auto_croisementbwdfwdcomparaison("KOR", 2014, 2019)
+auto_croisementbwdfwdcomparaison("MEX", 2014, 2019)
+auto_croisementbwdfwdcomparaison("NLD", 2014, 2019)
+auto_croisementbwdfwdcomparaison("PRT", 2014, 2019)
+auto_croisementbwdfwdcomparaison("ROW", 2014, 2019)
+auto_croisementbwdfwdcomparaison("SWE", 2014, 2019)
+auto_croisementbwdfwdcomparaison("USA", 2014, 2019)
+
+```
+
 ```{r}
 ########################### Croisement Bwd et Fwd sur 2019 (base A17)
 
@@ -474,41 +659,40 @@ A faire:
 # # croisement_BwdFwd_pays_annee("CHN",2014)
 # # croisement_BwdFwd_pays_annee("CHN",2009)
 # # croisement_BwdFwd_pays_annee("CHN",2004)
-# 
-
 ```
+
 ```{r essai Adel +}
+# 
+# LinkageBwdFwd_A17_Bwd<-BASEres_LinkageBwdFwd_A17[["Indic_Bwd_byCountry"]][Lig_Country=="FRA" & year=="2019",][,link:="Bwd"]
+# LinkageBwdFwd_A17_Fwd<-BASEres_LinkageBwdFwd_A17[["Indic_Fwd_byCountry"]][Lig_Country=="FRA" & year=="2019",][,link:="Fwd"]
+# #setnames(LinkageBwdFwd_A17_Fwd,c("Col_Country","Col_Indus"),c("Lig_Country","Lig_Indus"))
+# LinkageBwdFwd_A17<-rbind(LinkageBwdFwd_A17_Bwd,LinkageBwdFwd_A17_Fwd)
+# LinkageBwdFwd_A17_tab<-dcast(LinkageBwdFwd_A17,Lig_Indus ~ link,value.var="value")
+# 
+# LinkageBwdFwd_A17_Bwd_ref<-BASEres_LinkageBwdFwd_A17[["Indic_Bwd_byCountry"]][Lig_Country=="MEX" & year=="2019",][,link:="Bwd"]
+# LinkageBwdFwd_A17_Fwd_ref<-BASEres_LinkageBwdFwd_A17[["Indic_Fwd_byCountry"]][Lig_Country=="MEX" & year=="2019",][,link:="Fwd"]
+# #setnames(LinkageBwdFwd_A17_Fwd_ref,c("Col_Country","Col_Indus"),c("Lig_Country","Lig_Indus"))
+# LinkageBwdFwd_A17_ref<-rbind(LinkageBwdFwd_A17_Bwd_ref,LinkageBwdFwd_A17_Fwd_ref)
+# LinkageBwdFwd_A17_ref_tab<-dcast(LinkageBwdFwd_A17_ref,Lig_Indus ~ link,value.var="value")
+# 
+# 
+# res.km <- kmeans(scale(LinkageBwdFwd_A17_tab[,c(2:3)]), 4, nstart = 10)
+# LinkageBwdFwd_A17_tab$cluster <- res.km$cluster
+# 
+# print(c("Voici les moyennes des fwd et bwd du pays choisi:",median(LinkageBwdFwd_A17_tab$Fwd),median(LinkageBwdFwd_A17_tab$Bwd)))
+# print(c("Voici les moyennes des fwd et bwd du pays de référence choisi:",median(LinkageBwdFwd_A17_ref_tab$Fwd),median(LinkageBwdFwd_A17_ref_tab$Bwd)))
+# 
+# p<-ggplot(LinkageBwdFwd_A17_tab, aes(x=Bwd, y=Fwd, col = factor(cluster))) +
+#   geom_point(size = 2, alpha = 0.8, position = "jitter") + # Show dots
+#   geom_label(
+#     label=LinkageBwdFwd_A17_tab$Lig_Indus, 
+#     nudge_x = 0.005, nudge_y = 0.005, 
+#     check_overlap = T
+#   )
+# p+geom_hline(data=LinkageBwdFwd_A17_ref_tab,yintercept=mean(LinkageBwdFwd_A17_ref_tab$Fwd))+geom_vline(data=LinkageBwdFwd_A17_tab,xintercept=mean(LinkageBwdFwd_A17_ref_tab$Bwd))
+# ```
 
- LinkageBwdFwd_A17_Bwd<-BASEres_LinkageBwdFwd_A17[["Indic_Bwd_byCountry"]][Lig_Country=="FRA" & year=="2019",][,link:="Bwd"]
-  LinkageBwdFwd_A17_Fwd<-BASEres_LinkageBwdFwd_A17[["Indic_Fwd_byCountry"]][Lig_Country=="FRA" & year=="2019",][,link:="Fwd"]
-  #setnames(LinkageBwdFwd_A17_Fwd,c("Col_Country","Col_Indus"),c("Lig_Country","Lig_Indus"))
-  LinkageBwdFwd_A17<-rbind(LinkageBwdFwd_A17_Bwd,LinkageBwdFwd_A17_Fwd)
-  LinkageBwdFwd_A17_tab<-dcast(LinkageBwdFwd_A17,Lig_Indus ~ link,value.var="value")
-  
-  LinkageBwdFwd_A17_Bwd_ref<-BASEres_LinkageBwdFwd_A17[["Indic_Bwd_byCountry"]][Lig_Country=="MEX" & year=="2019",][,link:="Bwd"]
-  LinkageBwdFwd_A17_Fwd_ref<-BASEres_LinkageBwdFwd_A17[["Indic_Fwd_byCountry"]][Lig_Country=="MEX" & year=="2019",][,link:="Fwd"]
-  #setnames(LinkageBwdFwd_A17_Fwd_ref,c("Col_Country","Col_Indus"),c("Lig_Country","Lig_Indus"))
-  LinkageBwdFwd_A17_ref<-rbind(LinkageBwdFwd_A17_Bwd_ref,LinkageBwdFwd_A17_Fwd_ref)
-  LinkageBwdFwd_A17_ref_tab<-dcast(LinkageBwdFwd_A17_ref,Lig_Indus ~ link,value.var="value")
-  
-  
-  res.km <- kmeans(scale(LinkageBwdFwd_A17_tab[,c(2:3)]), 4, nstart = 10)
-  LinkageBwdFwd_A17_tab$cluster <- res.km$cluster
-  
-  print(c("Voici les moyennes des fwd et bwd du pays choisi:",median(LinkageBwdFwd_A17_tab$Fwd),median(LinkageBwdFwd_A17_tab$Bwd)))
-    print(c("Voici les moyennes des fwd et bwd du pays de référence choisi:",median(LinkageBwdFwd_A17_ref_tab$Fwd),median(LinkageBwdFwd_A17_ref_tab$Bwd)))
-  
-  p<-ggplot(LinkageBwdFwd_A17_tab, aes(x=Bwd, y=Fwd, col = factor(cluster))) +
-  geom_point(size = 2, alpha = 0.8, position = "jitter") + # Show dots
-  geom_label(
-    label=LinkageBwdFwd_A17_tab$Lig_Indus, 
-    nudge_x = 0.005, nudge_y = 0.005, 
-    check_overlap = T
-  )
-  p+geom_hline(data=LinkageBwdFwd_A17_ref_tab,yintercept=mean(LinkageBwdFwd_A17_ref_tab$Fwd))+geom_vline(data=LinkageBwdFwd_A17_tab,xintercept=mean(LinkageBwdFwd_A17_ref_tab$Bwd))
-```
-
-Linkage : partie graphs temporels
+# Linkage : partie graphs temporels
 
 ```{r}
 
@@ -517,10 +701,194 @@ Linkage : partie graphs temporels
 # Exploitation des bases : BASEres_LinkageBwdFwd_ECOLE ; BASEres_LinkageBwdFwd_A17 ; BASEres_LinkageBwdFwd_LRWIO 
 
 #### Backward linkage sur base A17
+LinkageBwdFwd_A17_Bwd<-BASEres_LinkageBwdFwd_A17[["Indic_Bwd_byCountry"]][Lig_Country=="FRA" & year==2019,][,link:="Bwd"]
+LinkageBwdFwd_A17_Fwd<-BASEres_LinkageBwdFwd_A17[["Indic_Fwd_byCountry"]][Col_Country=="FRA" & year==2019,][,link:="Fwd"]
+setnames(LinkageBwdFwd_A17_Fwd,c("Col_Country","Col_Indus"),c("Lig_Country","Lig_Indus"))
+LinkageBwdFwd_A17<-rbind(LinkageBwdFwd_A17_Bwd,LinkageBwdFwd_A17_Fwd)
+
+LinkageBwdFwd_A17_tab<-dcast(LinkageBwdFwd_A17,Lig_Indus ~ link,value.var="value")
+
+res.km <- kmeans(scale(LinkageBwdFwd_A17_tab[,c(2:3)]), 4, nstart = 10)
+LinkageBwdFwd_A17_tab$cluster <- res.km$cluster
+
+LinkageBwdFwd_A17_Bwd<-BASEres_LinkageBwdFwd_A17[["Indic_Bwd_byCountry"]][Lig_Country=="FRA",]
+  
+LinkageBwdFwd_A17_Bwd_tab<-dcast(LinkageBwdFwd_A17_Bwd,Lig_Indus ~ year ,value.var="value") 
+LinkageBwdFwd_A17_Bwd_ttab<-AddRownamesToFirstCol(t(LinkageBwdFwd_A17_Bwd_tab))
+colnames(LinkageBwdFwd_A17_Bwd_ttab)<-LinkageBwdFwd_A17_Bwd_ttab[1,]
+LinkageBwdFwd_A17_Bwd_ttab<-LinkageBwdFwd_A17_Bwd_ttab[-1,]
+LinkageBwdFwd_A17_Bwd_ttab<-setDF(LinkageBwdFwd_A17_Bwd_ttab)
+LinkageBwdFwd_A17_Bwd_ttab<- mutate_all(LinkageBwdFwd_A17_Bwd_ttab, function(x) as.numeric(as.character(x)))
+
+shape=c(0:2,3,5,15,17:19)
+
+List_BR<-colnames(LinkageBwdFwd_A17_Bwd_ttab)[2:18]
+matplot(LinkageBwdFwd_A17_Bwd_ttab$Lig_Indus, LinkageBwdFwd_A17_Bwd_ttab[,2:18],type="b",col= factor(LinkageBwdFwd_A17_tab$cluster),pch = shape, xlab="années",ylab="Indic linkage",main="Backward Linkage du pays au format A17")
+legend(x="bottomleft", legend=List_BR, pch = shape) 
+options(repr.plot.width=20, repr.plot.height=10)
+
+LinkageBwdFwd_A17_Bwd<-BASEres_LinkageBwdFwd_A17[["Indic_Bwd_byCountry"]][Lig_Country=="FRA" & year==2019,][,link:="Bwd"]
+LinkageBwdFwd_A17_Fwd<-BASEres_LinkageBwdFwd_A17[["Indic_Fwd_byCountry"]][Col_Country=="FRA" & year==2019,][,link:="Fwd"]
+setnames(LinkageBwdFwd_A17_Fwd,c("Col_Country","Col_Indus"),c("Lig_Country","Lig_Indus"))
+LinkageBwdFwd_A17<-rbind(LinkageBwdFwd_A17_Bwd,LinkageBwdFwd_A17_Fwd)
+
+LinkageBwdFwd_A17_tab<-dcast(LinkageBwdFwd_A17,Lig_Indus ~ link,value.var="value")
+
+res.kmr <- kmeans(scale(LinkageBwdFwd_A17_tab[,c(2:3)]), 4, nstart = 10)
+
+cluster_annee <- function(pays,annee,res.kmr){
+LinkageBwdFwd_A17_Bwd<-BASEres_LinkageBwdFwd_A17[["Indic_Bwd_byCountry"]][Lig_Country==pays & year==annee,][,link:="Bwd"]
+LinkageBwdFwd_A17_Fwd<-BASEres_LinkageBwdFwd_A17[["Indic_Fwd_byCountry"]][Col_Country==pays & year==annee,][,link:="Fwd"]
+setnames(LinkageBwdFwd_A17_Fwd,c("Col_Country","Col_Indus"),c("Lig_Country","Lig_Indus"))
+LinkageBwdFwd_A17<-rbind(LinkageBwdFwd_A17_Bwd,LinkageBwdFwd_A17_Fwd)
+
+LinkageBwdFwd_A17_tab<-dcast(LinkageBwdFwd_A17,Lig_Indus ~ link,value.var="value")
+
+res.km <- kmeans(scale(LinkageBwdFwd_A17_tab[,c(2:3)]), 4,centers = res.kmr$centers, nstart = 10)
+d <- data.frame(res.km$cluster) 
+colnames(d) <- annee
+d
+}
+
+cluster_pays_annee <- cluster_annee("FRA", 2000, res.kmr)
+cluster_pays_annee$annee2001 <- cluster_annee("FRA", 2001, res.kmr)
+cluster_pays_annee$annee2002 <- cluster_annee("FRA", 2002, res.kmr)
+cluster_pays_annee$annee2003 <- cluster_annee("FRA", 2003, res.kmr)
+cluster_pays_annee$annee2004 <- cluster_annee("FRA", 2004, res.kmr)
+cluster_pays_annee$annee2005 <- cluster_annee("FRA", 2005, res.kmr)
+cluster_pays_annee$annee2006 <- cluster_annee("FRA", 2006, res.kmr)
+cluster_pays_annee$annee2007 <- cluster_annee("FRA", 2007, res.kmr)
+cluster_pays_annee$annee2008 <- cluster_annee("FRA", 2008, res.kmr)
+cluster_pays_annee$annee2009 <- cluster_annee("FRA", 2009, res.kmr)
+cluster_pays_annee$annee2010 <- cluster_annee("FRA", 2010, res.kmr)
+cluster_pays_annee$annee2011 <- cluster_annee("FRA", 2011, res.kmr)
+cluster_pays_annee$annee2012 <- cluster_annee("FRA", 2012, res.kmr)
+cluster_pays_annee$annee2013 <- cluster_annee("FRA", 2013, res.kmr)
+cluster_pays_annee$annee2014 <- cluster_annee("FRA", 2014, res.kmr)
+cluster_pays_annee$annee2015 <- cluster_annee("FRA", 2015, res.kmr)
+cluster_pays_annee$annee2016 <- cluster_annee("FRA", 2016, res.kmr)
+cluster_pays_annee$annee2017 <- cluster_annee("FRA", 2017, res.kmr)
+cluster_pays_annee$annee2018 <- cluster_annee("FRA", 2018, res.kmr)
+cluster_pays_annee$annee2019 <- cluster_annee("FRA", 2019, res.kmr)
+cluster_pays_annee$annee2020 <- cluster_annee("FRA", 2020, res.kmr)
 
 
-evolution_indicateurbwd_pays_A17 = function(pays){
-  setwd("C:/Users/Bendounan Adel/Documents/Projet_methodo_3A/stat_desc_projetmethodo/by_country")
+
+plot(LinkageBwdFwd_A17_Bwd_ttab[,1],LinkageBwdFwd_A17_Bwd_ttab[,2], xlab="Années",ylab="Indic linkage 1/2",main="Backward Linkage du pays au format A17", type = "b", frame = FALSE, pch = shape[1], col = data.frame(t(cluster_pays_annee[1,]))$X1, ylim = c(0.005,0.13))
+lines(LinkageBwdFwd_A17_Bwd_ttab[,1], LinkageBwdFwd_A17_Bwd_ttab[,3],pch = shape[2], col = data.frame(t(cluster_pays_annee[2,]))$X2 , type = "b", lty  =2)
+lines(LinkageBwdFwd_A17_Bwd_ttab[,1], LinkageBwdFwd_A17_Bwd_ttab[,4],pch = shape[3], col = data.frame(t(cluster_pays_annee[3,]))$X3, type = "b", lty  =2)
+lines(LinkageBwdFwd_A17_Bwd_ttab[,1], LinkageBwdFwd_A17_Bwd_ttab[,5],pch = shape[4], col = data.frame(t(cluster_pays_annee[4,]))$X4, type = "b", lty  =2)
+
+
+lines(LinkageBwdFwd_A17_Bwd_ttab[,1], LinkageBwdFwd_A17_Bwd_ttab[,6],pch = shape[5], col = data.frame(t(cluster_pays_annee[5,]))$X5, type = "b", lty  =2)
+lines(LinkageBwdFwd_A17_Bwd_ttab[,1], LinkageBwdFwd_A17_Bwd_ttab[,7],pch = shape[6], col =data.frame(t(cluster_pays_annee[6,]))$X6, type = "b", lty  =2)
+lines(LinkageBwdFwd_A17_Bwd_ttab[,1], LinkageBwdFwd_A17_Bwd_ttab[,8],pch = shape[7], col = data.frame(t(cluster_pays_annee[7,]))$X7, type = "b", lty  =2)
+lines(LinkageBwdFwd_A17_Bwd_ttab[,1], LinkageBwdFwd_A17_Bwd_ttab[,9],pch = shape[8], col = data.frame(t(cluster_pays_annee[8,]))$X8, type = "b", lty  =2)
+lines(LinkageBwdFwd_A17_Bwd_ttab[,1], LinkageBwdFwd_A17_Bwd_ttab[,10],pch = shape[9], col =data.frame(t(cluster_pays_annee[9,]))$X9, type = "b", lty  =2)
+legend(x = "bottomright", horiz = TRUE,legend = List_BR[1:9], pch = shape)
+
+plot(LinkageBwdFwd_A17_Bwd_ttab[,1], LinkageBwdFwd_A17_Bwd_ttab[,11], xlab="Années",ylab="Indic linkage 2/2",main="Backward Linkage du pays au format A17",pch = shape[1], col = data.frame(t(cluster_pays_annee[10,]))$X10, type = "b", frame = FALSE,  ylim = c(0.005,0.13))
+lines(LinkageBwdFwd_A17_Bwd_ttab[,1], LinkageBwdFwd_A17_Bwd_ttab[,12],pch = shape[2], col = data.frame(t(cluster_pays_annee[11,]))$X11, type = "b", lty  =2)
+lines(LinkageBwdFwd_A17_Bwd_ttab[,1], LinkageBwdFwd_A17_Bwd_ttab[,13],pch = shape[3], col = data.frame(t(cluster_pays_annee[12,]))$X12, type = "b", lty  =2)
+lines(LinkageBwdFwd_A17_Bwd_ttab[,1], LinkageBwdFwd_A17_Bwd_ttab[,14],pch = shape[4], col = data.frame(t(cluster_pays_annee[13,]))$X13, type = "b", lty  =2)
+lines(LinkageBwdFwd_A17_Bwd_ttab[,1], LinkageBwdFwd_A17_Bwd_ttab[,15],pch = shape[5], col = data.frame(t(cluster_pays_annee[14,]))$X14, type = "b", lty  =2)
+lines(LinkageBwdFwd_A17_Bwd_ttab[,1], LinkageBwdFwd_A17_Bwd_ttab[,16],pch = shape[6], col =data.frame(t(cluster_pays_annee[15,]))$X15, type = "b", lty  =2)
+lines(LinkageBwdFwd_A17_Bwd_ttab[,1], LinkageBwdFwd_A17_Bwd_ttab[,17],pch = shape[7], col = data.frame(t(cluster_pays_annee[16,]))$X16, type = "b", lty  =2)
+lines(LinkageBwdFwd_A17_Bwd_ttab[,1], LinkageBwdFwd_A17_Bwd_ttab[,18],pch = shape[8], col =data.frame(t(cluster_pays_annee[17,]))$X17, type = "b", lty  =2)
+legend(x = "topright", horiz = TRUE, legend = List_BR[10:17], pch = shape[1:8])
+
+
+#### Forward linkage sur base A17
+LinkageBwdFwd_A17_Fwd<-BASEres_LinkageBwdFwd_A17[["Indic_Fwd_byCountry"]][Col_Country=="FRA",]
+  
+LinkageBwdFwd_A17_Fwd_tab<-dcast(LinkageBwdFwd_A17_Fwd,Col_Indus ~ year ,value.var="value") 
+LinkageBwdFwd_A17_Fwd_ttab<-AddRownamesToFirstCol(t(LinkageBwdFwd_A17_Fwd_tab))
+colnames(LinkageBwdFwd_A17_Fwd_ttab)<-LinkageBwdFwd_A17_Fwd_ttab[1,]
+LinkageBwdFwd_A17_Fwd_ttab<-LinkageBwdFwd_A17_Fwd_ttab[-1,]
+LinkageBwdFwd_A17_Fwd_ttab<-setDF(LinkageBwdFwd_A17_Fwd_ttab)
+LinkageBwdFwd_A17_Fwd_ttab<- mutate_all(LinkageBwdFwd_A17_Fwd_ttab, function(x) as.numeric(as.character(x)))
+
+List_BR<-colnames(LinkageBwdFwd_A17_Fwd_ttab)[2:18]
+matplot(LinkageBwdFwd_A17_Fwd_ttab$Col_Indus, LinkageBwdFwd_A17_Fwd_ttab[,2:18],type="b",col= hcl.colors(10, "Temps"),pch=c(16,1),xlab="années",ylab="Indic linkage",main="Forward Linkage de la France au format A17")
+legend(x="bottomleft", legend=List_BR, fill =hcl.colors(10, "Temps"))
+
+
+#### Backward linkage sur base ECOLE et sur toute la période
+LinkageBwdFwd_ECOLE_Bwd<-BASEres_LinkageBwdFwd_ECOLE[["Indic_Bwd_byCountry"]][Lig_Country=="FRA",]
+  
+LinkageBwdFwd_ECOLE_Bwd_tab<-dcast(LinkageBwdFwd_ECOLE_Bwd,Lig_Indus ~ year ,value.var="value") 
+LinkageBwdFwd_ECOLE_Bwd_ttab<-AddRownamesToFirstCol(t(LinkageBwdFwd_ECOLE_Bwd_tab))
+colnames(LinkageBwdFwd_ECOLE_Bwd_ttab)<-LinkageBwdFwd_ECOLE_Bwd_ttab[1,]
+LinkageBwdFwd_ECOLE_Bwd_ttab<-LinkageBwdFwd_ECOLE_Bwd_ttab[-1,]
+LinkageBwdFwd_ECOLE_Bwd_ttab<-setDF(LinkageBwdFwd_ECOLE_Bwd_ttab)
+LinkageBwdFwd_ECOLE_Bwd_ttab<- mutate_all(LinkageBwdFwd_ECOLE_Bwd_ttab, function(x) as.numeric(as.character(x)))
+
+List_BR<-colnames(LinkageBwdFwd_ECOLE_Bwd_ttab)[2:5]
+matplot(LinkageBwdFwd_ECOLE_Bwd_ttab$Lig_Indus, LinkageBwdFwd_ECOLE_Bwd_ttab[,2:5],type="b",col= hcl.colors(10, "Temps"),pch=c(16,1),xlab="années",ylab="Indic linkage",main="Backward Linkage de la France au format ECOLE")
+legend(x="bottomleft", legend=List_BR, fill =hcl.colors(10, "Temps"))
+```
+
+Automatisation 
+
+```{r}
+#fonction pour avoir les clusters avec des centres de reference
+cluster_annee <- function(pays,annee,res.kmr){
+LinkageBwdFwd_A17_Bwd<-BASEres_LinkageBwdFwd_A17[["Indic_Bwd_byCountry"]][Lig_Country==pays & year==annee,][,link:="Bwd"]
+LinkageBwdFwd_A17_Fwd<-BASEres_LinkageBwdFwd_A17[["Indic_Fwd_byCountry"]][Col_Country==pays & year==annee,][,link:="Fwd"]
+setnames(LinkageBwdFwd_A17_Fwd,c("Col_Country","Col_Indus"),c("Lig_Country","Lig_Indus"))
+LinkageBwdFwd_A17<-rbind(LinkageBwdFwd_A17_Bwd,LinkageBwdFwd_A17_Fwd)
+
+LinkageBwdFwd_A17_tab<-dcast(LinkageBwdFwd_A17,Lig_Indus ~ link,value.var="value")
+
+res.km <- kmeans(scale(LinkageBwdFwd_A17_tab[,c(2:3)]), 4,centers = res.kmr$centers, nstart = 10)
+d <- data.frame(res.km$cluster) 
+colnames(d) <- annee
+d
+}
+
+#clusters sur toutes les annees
+clusters_p_a <- function(pays, res.kmr){
+cluster_pays_annee <- cluster_annee(pays, 2000, res.kmr)
+cluster_pays_annee$annee2001 <- cluster_annee(pays, 2001, res.kmr)
+cluster_pays_annee$annee2002 <- cluster_annee(pays, 2002, res.kmr)
+cluster_pays_annee$annee2003 <- cluster_annee(pays, 2003, res.kmr)
+cluster_pays_annee$annee2004 <- cluster_annee(pays, 2004, res.kmr)
+cluster_pays_annee$annee2005 <- cluster_annee(pays, 2005, res.kmr)
+cluster_pays_annee$annee2006 <- cluster_annee(pays, 2006, res.kmr)
+cluster_pays_annee$annee2007 <- cluster_annee(pays, 2007, res.kmr)
+cluster_pays_annee$annee2008 <- cluster_annee(pays, 2008, res.kmr)
+cluster_pays_annee$annee2009 <- cluster_annee(pays, 2009, res.kmr)
+cluster_pays_annee$annee2010 <- cluster_annee(pays, 2010, res.kmr)
+cluster_pays_annee$annee2011 <- cluster_annee(pays, 2011, res.kmr)
+cluster_pays_annee$annee2012 <- cluster_annee(pays, 2012, res.kmr)
+cluster_pays_annee$annee2013 <- cluster_annee(pays, 2013, res.kmr)
+cluster_pays_annee$annee2014 <- cluster_annee(pays, 2014, res.kmr)
+cluster_pays_annee$annee2015 <- cluster_annee(pays, 2015, res.kmr)
+cluster_pays_annee$annee2016 <- cluster_annee(pays, 2016, res.kmr)
+cluster_pays_annee$annee2017 <- cluster_annee(pays, 2017, res.kmr)
+cluster_pays_annee$annee2018 <- cluster_annee(pays, 2018, res.kmr)
+cluster_pays_annee$annee2019 <- cluster_annee(pays, 2019, res.kmr)
+cluster_pays_annee$annee2020 <- cluster_annee(pays, 2020, res.kmr)
+cluster_pays_annee
+}
+```
+
+```{r}
+
+#### Backward linkage sur base A17
+auto_bwdtemp <- function(pays, annee_ref){
+
+#On recupère les centres des kmeans sur l'annee de reference
+LinkageBwdFwd_A17_Bwd<-BASEres_LinkageBwdFwd_A17[["Indic_Bwd_byCountry"]][Lig_Country==pays & year==annee_ref,][,link:="Bwd"]
+LinkageBwdFwd_A17_Fwd<-BASEres_LinkageBwdFwd_A17[["Indic_Fwd_byCountry"]][Col_Country==pays & year==annee_ref,][,link:="Fwd"]
+setnames(LinkageBwdFwd_A17_Fwd,c("Col_Country","Col_Indus"),c("Lig_Country","Lig_Indus"))
+LinkageBwdFwd_A17<-rbind(LinkageBwdFwd_A17_Bwd,LinkageBwdFwd_A17_Fwd)
+
+LinkageBwdFwd_A17_tab<-dcast(LinkageBwdFwd_A17,Lig_Indus ~ link,value.var="value")
+
+res.kmr <- kmeans(scale(LinkageBwdFwd_A17_tab[,c(2:3)]), 4, nstart = 10)
+
+#linkages bwd
 LinkageBwdFwd_A17_Bwd<-BASEres_LinkageBwdFwd_A17[["Indic_Bwd_byCountry"]][Lig_Country==pays,]
   
 LinkageBwdFwd_A17_Bwd_tab<-dcast(LinkageBwdFwd_A17_Bwd,Lig_Indus ~ year ,value.var="value") 
@@ -530,58 +898,239 @@ LinkageBwdFwd_A17_Bwd_ttab<-LinkageBwdFwd_A17_Bwd_ttab[-1,]
 LinkageBwdFwd_A17_Bwd_ttab<-setDF(LinkageBwdFwd_A17_Bwd_ttab)
 LinkageBwdFwd_A17_Bwd_ttab<- mutate_all(LinkageBwdFwd_A17_Bwd_ttab, function(x) as.numeric(as.character(x)))
 
+#clusters sur toutes les annees
+clusters_pays_a <- clusters_p_a(pays, res.kmr)
 
-
+#forme des points
+shape=c(0:2,3,5,15,17:19)
+#liste des indicateurs
 List_BR<-colnames(LinkageBwdFwd_A17_Bwd_ttab)[2:18]
-matplot(LinkageBwdFwd_A17_Bwd_ttab$Lig_Indus, LinkageBwdFwd_A17_Bwd_ttab[,2:18],type="b",col= hcl.colors(10, "Temps"),pch=c(16,1),xlab="années",ylab="Indic linkage",main=paste("Backward Linkage de ",paste(pays,"au format A17")))
-legend(x="bottomleft", legend=List_BR, fill =hcl.colors(10, "Temps"))
-dev.print(device = png,file = paste(pays,"_evolution_branche_Bwd.png"),width = 600)
+
+#plot de la premiere moitie des indicateurs de linkage
+plot(LinkageBwdFwd_A17_Bwd_ttab[,1],LinkageBwdFwd_A17_Bwd_ttab[,2], xlab=c("Années", pays),ylab="Indic linkage 1/2",main="Backward Linkage du pays au format A17", type = "b", frame = FALSE, pch = shape[1], col = data.frame(t(cluster_pays_annee[1,]))$X1, ylim = c(-0.02,0.13))
+lines(LinkageBwdFwd_A17_Bwd_ttab[,1], LinkageBwdFwd_A17_Bwd_ttab[,3],pch = shape[2], col = data.frame(t(cluster_pays_annee[2,]))$X2 , type = "b", lty  =2)
+lines(LinkageBwdFwd_A17_Bwd_ttab[,1], LinkageBwdFwd_A17_Bwd_ttab[,4],pch = shape[3], col = data.frame(t(cluster_pays_annee[3,]))$X3, type = "b", lty  =2)
+lines(LinkageBwdFwd_A17_Bwd_ttab[,1], LinkageBwdFwd_A17_Bwd_ttab[,5],pch = shape[4], col = data.frame(t(cluster_pays_annee[4,]))$X4, type = "b", lty  =2)
+lines(LinkageBwdFwd_A17_Bwd_ttab[,1], LinkageBwdFwd_A17_Bwd_ttab[,6],pch = shape[5], col = data.frame(t(cluster_pays_annee[5,]))$X5, type = "b", lty  =2)
+lines(LinkageBwdFwd_A17_Bwd_ttab[,1], LinkageBwdFwd_A17_Bwd_ttab[,7],pch = shape[6], col =data.frame(t(cluster_pays_annee[6,]))$X6, type = "b", lty  =2)
+lines(LinkageBwdFwd_A17_Bwd_ttab[,1], LinkageBwdFwd_A17_Bwd_ttab[,8],pch = shape[7], col = data.frame(t(cluster_pays_annee[7,]))$X7, type = "b", lty  =2)
+lines(LinkageBwdFwd_A17_Bwd_ttab[,1], LinkageBwdFwd_A17_Bwd_ttab[,9],pch = shape[8], col = data.frame(t(cluster_pays_annee[8,]))$X8, type = "b", lty  =2)
+
+lines(LinkageBwdFwd_A17_Bwd_ttab[,1], LinkageBwdFwd_A17_Bwd_ttab[,10],pch = shape[9], col =data.frame(t(cluster_pays_annee[9,]))$X9, type = "b", lty  =2)
+legend(x = "bottomright", horiz = TRUE,legend = List_BR[1:9], pch = shape)
+
+#plot de la deuxieme moitie des indicateurs de linkage
+plot(LinkageBwdFwd_A17_Bwd_ttab[,1], LinkageBwdFwd_A17_Bwd_ttab[,11], xlab=c("Années", pays),ylab="Indic linkage 2/2",main="Backward Linkage du pays au format A17",pch = shape[1], col = data.frame(t(cluster_pays_annee[10,]))$X10, type = "b", frame = FALSE,  ylim = c(-0.02,0.13))
+lines(LinkageBwdFwd_A17_Bwd_ttab[,1], LinkageBwdFwd_A17_Bwd_ttab[,12],pch = shape[2], col = data.frame(t(cluster_pays_annee[11,]))$X11, type = "b", lty  =2)
+lines(LinkageBwdFwd_A17_Bwd_ttab[,1], LinkageBwdFwd_A17_Bwd_ttab[,13],pch = shape[3], col = data.frame(t(cluster_pays_annee[12,]))$X12, type = "b", lty  =2)
+lines(LinkageBwdFwd_A17_Bwd_ttab[,1], LinkageBwdFwd_A17_Bwd_ttab[,14],pch = shape[4], col = data.frame(t(cluster_pays_annee[13,]))$X13, type = "b", lty  =2)
+lines(LinkageBwdFwd_A17_Bwd_ttab[,1], LinkageBwdFwd_A17_Bwd_ttab[,15],pch = shape[5], col = data.frame(t(cluster_pays_annee[14,]))$X14, type = "b", lty  =2)
+lines(LinkageBwdFwd_A17_Bwd_ttab[,1], LinkageBwdFwd_A17_Bwd_ttab[,16],pch = shape[6], col =data.frame(t(cluster_pays_annee[15,]))$X15, type = "b", lty  =2)
+lines(LinkageBwdFwd_A17_Bwd_ttab[,1], LinkageBwdFwd_A17_Bwd_ttab[,17],pch = shape[7], col = data.frame(t(cluster_pays_annee[16,]))$X16, type = "b", lty  =2)
+lines(LinkageBwdFwd_A17_Bwd_ttab[,1], LinkageBwdFwd_A17_Bwd_ttab[,18],pch = shape[8], col =data.frame(t(cluster_pays_annee[17,]))$X17, type = "b", lty  =2)
+legend(x = "topright", horiz = TRUE, legend = List_BR[10:17], pch = shape[1:8])
 }
-for (pays in levels(factor(BDD_bwd$Lig_Country))){
-  evolution_indicateurbwd_pays_A17(pays)
-}
+```
+
+
+```{r}
+auto_bwdtemp("FRA",2019)
+```
+Tous les pays
+```{r}
+auto_bwdtemp("AUS", 2019)
+auto_bwdtemp("AUT", 2019)
+auto_bwdtemp("BEL", 2019)
+auto_bwdtemp("BRA", 2019)
+auto_bwdtemp("CAN", 2019)
+auto_bwdtemp("CHN", 2019)
+auto_bwdtemp("DEU", 2019)
+auto_bwdtemp("DNK", 2019)
+auto_bwdtemp("ESP", 2019)
+auto_bwdtemp("FIN", 2019)
+auto_bwdtemp("FRA", 2019)
+auto_bwdtemp("GBR", 2019)
+auto_bwdtemp("GRC", 2019)
+auto_bwdtemp("IND", 2019)
+
+auto_bwdtemp("ITA", 2019)
+auto_bwdtemp("JPN", 2019)
+auto_bwdtemp("KOR", 2019)
+auto_bwdtemp("MEX", 2019)
+auto_bwdtemp("NLD", 2019)
+
+auto_bwdtemp("ROW", 2019)
+auto_bwdtemp("SWE", 2019)
+auto_bwdtemp("USA", 2019)
+```
+
+```{r}
 
 #### Forward linkage sur base A17
+auto_fwdtemp <- function(pays, annee_ref){
 
-evolution_indicateurfwd_pays_A17 = function(pays){
-  setwd("C:/Users/Bendounan Adel/Documents/Projet_methodo_3A/stat_desc_projetmethodo/by_country")
-  LinkageBwdFwd_A17_Fwd<-BASEres_LinkageBwdFwd_A17[["Indic_Fwd_byCountry"]][Lig_Country==pays,]
-  
-  LinkageBwdFwd_A17_Fwd_tab<-dcast(LinkageBwdFwd_A17_Fwd,Lig_Indus ~ year ,value.var="value") 
-  LinkageBwdFwd_A17_Fwd_ttab<-AddRownamesToFirstCol(t(LinkageBwdFwd_A17_Fwd_tab))
-  colnames(LinkageBwdFwd_A17_Fwd_ttab)<-LinkageBwdFwd_A17_Fwd_ttab[1,]
-  LinkageBwdFwd_A17_Fwd_ttab<-LinkageBwdFwd_A17_Fwd_ttab[-1,]
-  LinkageBwdFwd_A17_Fwd_ttab<-setDF(LinkageBwdFwd_A17_Fwd_ttab)
-  LinkageBwdFwd_A17_Fwd_ttab<- mutate_all(LinkageBwdFwd_A17_Fwd_ttab, function(x) as.numeric(as.character(x)))
+#On recupère les centres des kmeans sur l'annee de reference
+LinkageBwdFwd_A17_Bwd<-BASEres_LinkageBwdFwd_A17[["Indic_Bwd_byCountry"]][Lig_Country==pays & year==annee_ref,][,link:="Bwd"]
+LinkageBwdFwd_A17_Fwd<-BASEres_LinkageBwdFwd_A17[["Indic_Fwd_byCountry"]][Col_Country==pays & year==annee_ref,][,link:="Fwd"]
+setnames(LinkageBwdFwd_A17_Fwd,c("Col_Country","Col_Indus"),c("Lig_Country","Lig_Indus"))
+LinkageBwdFwd_A17<-rbind(LinkageBwdFwd_A17_Bwd,LinkageBwdFwd_A17_Fwd)
 
-  List_BR<-colnames(LinkageBwdFwd_A17_Fwd_ttab)[2:18]
-  matplot(LinkageBwdFwd_A17_Fwd_ttab$Lig_Indus, LinkageBwdFwd_A17_Fwd_ttab[,2:18],type="b",col= hcl.colors(10, "Temps"),pch=c(16,1),xlab="années",ylab="Indic linkage",main=paste("Forward Linkage de ",paste(pays,"au format A17")))
-  legend(x="bottomleft", legend=List_BR, fill =hcl.colors(10, "Temps"))
-  dev.print(device = png,file = paste(pays,"_evolution_branche_Fwd.png"),width = 600)
-}
-for (pays in levels(factor(BDD_bwd$Lig_Country))){
-  evolution_indicateurfwd_pays_A17(pays)
-}
+LinkageBwdFwd_A17_tab<-dcast(LinkageBwdFwd_A17,Lig_Indus ~ link,value.var="value")
 
-# HEm
-evolution_indicateurHEM_WIOD = function(pays){
-  setwd("C:/Users/Bendounan Adel/Documents/Projet_methodo_3A/stat_desc_projetmethodo/by_country")
-  HEM_A17<-Baseres_HEM_A17_WIOD[Lig_Country==pays,]
-HEM_A17_tab<-dcast(HEM_A17,Lig_Indus ~ year ,value.var="Indic_HEM") 
-HEM_A17_ttab<-AddRownamesToFirstCol(t(HEM_A17_tab))
-colnames(HEM_A17_ttab)<-HEM_A17_ttab[1,]
-HEM_A17_ttab<-HEM_A17_ttab[-1,]
-HEM_A17_ttab<-setDF(HEM_A17_ttab)
-HEM_A17_ttab<- mutate_all(HEM_A17_ttab, function(x) as.numeric(as.character(x)))
+res.kmr <- kmeans(scale(LinkageBwdFwd_A17_tab[,c(2:3)]), 4, nstart = 10)
 
-List_BR<-colnames(HEM_A17_ttab)[2:18]
-matplot(HEM_A17_ttab$Lig_Indus, HEM_A17_ttab[,2:18],type="b",col= hcl.colors(10, "Temps"),pch=c(16,1),xlab="années",ylab="Indic HEM",main=paste("HEM de ",paste(pays,"au format A17")))
-legend(x="bottomleft", legend=List_BR, fill =hcl.colors(10, "Temps"))
-dev.print(device = png,file = paste(pays,"_evolution_branche_HEM.png"),width = 600)
+#linkages fwd
+LinkageBwdFwd_A17_Fwd<-BASEres_LinkageBwdFwd_A17[["Indic_Fwd_byCountry"]][Col_Country==pays,]
+
+LinkageBwdFwd_A17_Fwd_tab<-dcast(LinkageBwdFwd_A17_Fwd,Col_Indus ~ year ,value.var="value") 
+LinkageBwdFwd_A17_Fwd_ttab<-AddRownamesToFirstCol(t(LinkageBwdFwd_A17_Fwd_tab))
+colnames(LinkageBwdFwd_A17_Fwd_ttab)<-LinkageBwdFwd_A17_Fwd_ttab[1,]
+LinkageBwdFwd_A17_Fwd_ttab<-LinkageBwdFwd_A17_Fwd_ttab[-1,]
+LinkageBwdFwd_A17_Fwd_ttab<-setDF(LinkageBwdFwd_A17_Fwd_ttab)
+LinkageBwdFwd_A17_Fwd_ttab<- mutate_all(LinkageBwdFwd_A17_Fwd_ttab, function(x) as.numeric(as.character(x)))
+
+#clusters sur toutes les annees
+
+clusters_pays_a <- clusters_p_a(pays, res.kmr)
+
+
+#forme des points
+shape=c(0:2,3,5,15,17:19)
+#liste des indicateurs
+List_BR<-colnames(LinkageBwdFwd_A17_Fwd_ttab)[2:18]
+
+#plot de la premiere moitie des indicateurs de linkage
+plot(LinkageBwdFwd_A17_Fwd_ttab[,1],LinkageBwdFwd_A17_Fwd_ttab[,2], xlab=c("Années", pays),ylab="Indic linkage 1/2",main="Forward Linkage du pays au format A17", type = "b", frame = FALSE, pch = shape[1], col = data.frame(t(cluster_pays_annee[1,]))$X1, ylim = c(-0.02,0.13))
+lines(LinkageBwdFwd_A17_Fwd_ttab[,1], LinkageBwdFwd_A17_Fwd_ttab[,3],pch = shape[2], col = data.frame(t(cluster_pays_annee[2,]))$X2 , type = "b", lty  =2)
+lines(LinkageBwdFwd_A17_Fwd_ttab[,1], LinkageBwdFwd_A17_Fwd_ttab[,4],pch = shape[3], col = data.frame(t(cluster_pays_annee[3,]))$X3, type = "b", lty  =2)
+lines(LinkageBwdFwd_A17_Fwd_ttab[,1], LinkageBwdFwd_A17_Fwd_ttab[,5],pch = shape[4], col = data.frame(t(cluster_pays_annee[4,]))$X4, type = "b", lty  =2)
+lines(LinkageBwdFwd_A17_Fwd_ttab[,1], LinkageBwdFwd_A17_Fwd_ttab[,6],pch = shape[5], col = data.frame(t(cluster_pays_annee[5,]))$X5, type = "b", lty  =2)
+lines(LinkageBwdFwd_A17_Fwd_ttab[,1], LinkageBwdFwd_A17_Fwd_ttab[,7],pch = shape[6], col =data.frame(t(cluster_pays_annee[6,]))$X6, type = "b", lty  =2)
+lines(LinkageBwdFwd_A17_Fwd_ttab[,1], LinkageBwdFwd_A17_Fwd_ttab[,8],pch = shape[7], col = data.frame(t(cluster_pays_annee[7,]))$X7, type = "b", lty  =2)
+lines(LinkageBwdFwd_A17_Fwd_ttab[,1], LinkageBwdFwd_A17_Fwd_ttab[,9],pch = shape[8], col = data.frame(t(cluster_pays_annee[8,]))$X8, type = "b", lty  =2)
+lines(LinkageBwdFwd_A17_Fwd_ttab[,1], LinkageBwdFwd_A17_Fwd_ttab[,10],pch = shape[9], col =data.frame(t(cluster_pays_annee[9,]))$X9, type = "b", lty  =2)
+legend(x = "bottomright", horiz = TRUE,legend = List_BR[1:9], pch = shape)
+#plot de la deuxieme moitie des indicateurs de linkage
+plot(LinkageBwdFwd_A17_Fwd_ttab[,1], LinkageBwdFwd_A17_Fwd_ttab[,11], xlab=c("Années", pays),ylab="Indic linkage 2/2",main="Forward Linkage du pays au format A17",pch = shape[1], col = data.frame(t(cluster_pays_annee[10,]))$X10, type = "b", frame = FALSE,  ylim = c(-0.02,0.13))
+lines(LinkageBwdFwd_A17_Fwd_ttab[,1], LinkageBwdFwd_A17_Fwd_ttab[,12],pch = shape[2], col = data.frame(t(cluster_pays_annee[11,]))$X11, type = "b", lty  =2)
+lines(LinkageBwdFwd_A17_Fwd_ttab[,1], LinkageBwdFwd_A17_Fwd_ttab[,13],pch = shape[3], col = data.frame(t(cluster_pays_annee[12,]))$X12, type = "b", lty  =2)
+lines(LinkageBwdFwd_A17_Fwd_ttab[,1], LinkageBwdFwd_A17_Fwd_ttab[,14],pch = shape[4], col = data.frame(t(cluster_pays_annee[13,]))$X13, type = "b", lty  =2)
+lines(LinkageBwdFwd_A17_Fwd_ttab[,1], LinkageBwdFwd_A17_Fwd_ttab[,15],pch = shape[5], col = data.frame(t(cluster_pays_annee[14,]))$X14, type = "b", lty  =2)
+lines(LinkageBwdFwd_A17_Fwd_ttab[,1], LinkageBwdFwd_A17_Fwd_ttab[,16],pch = shape[6], col =data.frame(t(cluster_pays_annee[15,]))$X15, type = "b", lty  =2)
+lines(LinkageBwdFwd_A17_Fwd_ttab[,1], LinkageBwdFwd_A17_Fwd_ttab[,17],pch = shape[7], col = data.frame(t(cluster_pays_annee[16,]))$X16, type = "b", lty  =2)
+lines(LinkageBwdFwd_A17_Fwd_ttab[,1], LinkageBwdFwd_A17_Fwd_ttab[,18],pch = shape[8], col =data.frame(t(cluster_pays_annee[17,]))$X17, type = "b", lty  =2)
+legend(x = "topright", horiz = TRUE, legend = List_BR[10:17], pch = shape[1:8])
+
 }
-for (pays in levels(factor(Baseres_HEM_A17_WIOD$Lig_Country))){
-  evolution_indicateurHEM_WIOD(pays)
-}
+```
+
+```{r}
+auto_fwdtemp("FRA",2019)
+```
+
+Tous les pays
+
+```{r}
+auto_fwdtemp("AUS", 2019)
+auto_fwdtemp("AUT", 2019)
+auto_fwdtemp("BEL", 2019)
+auto_fwdtemp("BRA", 2019)
+auto_fwdtemp("CAN", 2019)
+auto_fwdtemp("CHN", 2019)
+auto_fwdtemp("DEU", 2019)
+auto_fwdtemp("DNK", 2019)
+auto_fwdtemp("ESP", 2019)
+auto_fwdtemp("FIN", 2019)
+auto_fwdtemp("FRA", 2019)
+auto_fwdtemp("GBR", 2019)
+auto_fwdtemp("GRC", 2019)
+auto_fwdtemp("IND", 2019)
+
+auto_fwdtemp("ITA", 2019)
+auto_fwdtemp("JPN", 2019)
+auto_fwdtemp("KOR", 2019)
+auto_fwdtemp("MEX", 2019)
+auto_fwdtemp("NLD", 2019)
+
+auto_fwdtemp("ROW", 2019)
+auto_fwdtemp("SWE", 2019)
+auto_fwdtemp("USA", 2019)
+```
+
+
+
+
+
+
+# Exploitation des bases : BASEres_LinkageBwdFwd_ECOLE ; BASEres_LinkageBwdFwd_A17 ; BASEres_LinkageBwdFwd_LRWIO 
+
+#### Backward linkage sur base A17
+
+
+# evolution_indicateurbwd_pays_A17 = function(pays){
+#   setwd("C:/Users/Bendounan Adel/Documents/Projet_methodo_3A/stat_desc_projetmethodo/by_country")
+#   LinkageBwdFwd_A17_Bwd<-BASEres_LinkageBwdFwd_A17[["Indic_Bwd_byCountry"]][Lig_Country==pays,]
+#   
+#   LinkageBwdFwd_A17_Bwd_tab<-dcast(LinkageBwdFwd_A17_Bwd,Lig_Indus ~ year ,value.var="value") 
+#   LinkageBwdFwd_A17_Bwd_ttab<-AddRownamesToFirstCol(t(LinkageBwdFwd_A17_Bwd_tab))
+#   colnames(LinkageBwdFwd_A17_Bwd_ttab)<-LinkageBwdFwd_A17_Bwd_ttab[1,]
+#   LinkageBwdFwd_A17_Bwd_ttab<-LinkageBwdFwd_A17_Bwd_ttab[-1,]
+#   LinkageBwdFwd_A17_Bwd_ttab<-setDF(LinkageBwdFwd_A17_Bwd_ttab)
+#   LinkageBwdFwd_A17_Bwd_ttab<- mutate_all(LinkageBwdFwd_A17_Bwd_ttab, function(x) as.numeric(as.character(x)))
+#   
+#   
+#   
+#   List_BR<-colnames(LinkageBwdFwd_A17_Bwd_ttab)[2:18]
+#   matplot(LinkageBwdFwd_A17_Bwd_ttab$Lig_Indus, LinkageBwdFwd_A17_Bwd_ttab[,2:18],type="b",col= hcl.colors(10, "Temps"),pch=c(16,1),xlab="années",ylab="Indic linkage",main=paste("Backward Linkage de ",paste(pays,"au format A17")))
+#   legend(x="bottomleft", legend=List_BR, fill =hcl.colors(10, "Temps"))
+#   dev.print(device = png,file = paste(pays,"_evolution_branche_Bwd.png"),width = 600)
+# }
+# for (pays in levels(factor(BDD_bwd$Lig_Country))){
+#   evolution_indicateurbwd_pays_A17(pays)
+# }
+# 
+# #### Forward linkage sur base A17
+# 
+# evolution_indicateurfwd_pays_A17 = function(pays){
+#   setwd("C:/Users/Bendounan Adel/Documents/Projet_methodo_3A/stat_desc_projetmethodo/by_country")
+#   LinkageBwdFwd_A17_Fwd<-BASEres_LinkageBwdFwd_A17[["Indic_Fwd_byCountry"]][Lig_Country==pays,]
+#   
+#   LinkageBwdFwd_A17_Fwd_tab<-dcast(LinkageBwdFwd_A17_Fwd,Lig_Indus ~ year ,value.var="value") 
+#   LinkageBwdFwd_A17_Fwd_ttab<-AddRownamesToFirstCol(t(LinkageBwdFwd_A17_Fwd_tab))
+#   colnames(LinkageBwdFwd_A17_Fwd_ttab)<-LinkageBwdFwd_A17_Fwd_ttab[1,]
+#   LinkageBwdFwd_A17_Fwd_ttab<-LinkageBwdFwd_A17_Fwd_ttab[-1,]
+#   LinkageBwdFwd_A17_Fwd_ttab<-setDF(LinkageBwdFwd_A17_Fwd_ttab)
+#   LinkageBwdFwd_A17_Fwd_ttab<- mutate_all(LinkageBwdFwd_A17_Fwd_ttab, function(x) as.numeric(as.character(x)))
+#   
+#   List_BR<-colnames(LinkageBwdFwd_A17_Fwd_ttab)[2:18]
+#   matplot(LinkageBwdFwd_A17_Fwd_ttab$Lig_Indus, LinkageBwdFwd_A17_Fwd_ttab[,2:18],type="b",col= hcl.colors(10, "Temps"),pch=c(16,1),xlab="années",ylab="Indic linkage",main=paste("Forward Linkage de ",paste(pays,"au format A17")))
+#   legend(x="bottomleft", legend=List_BR, fill =hcl.colors(10, "Temps"))
+#   dev.print(device = png,file = paste(pays,"_evolution_branche_Fwd.png"),width = 600)
+# }
+# for (pays in levels(factor(BDD_bwd$Lig_Country))){
+#   evolution_indicateurfwd_pays_A17(pays)
+# }
+# 
+# # HEm
+# evolution_indicateurHEM_WIOD = function(pays){
+#   setwd("C:/Users/Bendounan Adel/Documents/Projet_methodo_3A/stat_desc_projetmethodo/by_country")
+#   HEM_A17<-Baseres_HEM_A17_WIOD[Lig_Country==pays,]
+#   HEM_A17_tab<-dcast(HEM_A17,Lig_Indus ~ year ,value.var="Indic_HEM") 
+#   HEM_A17_ttab<-AddRownamesToFirstCol(t(HEM_A17_tab))
+#   colnames(HEM_A17_ttab)<-HEM_A17_ttab[1,]
+#   HEM_A17_ttab<-HEM_A17_ttab[-1,]
+#   HEM_A17_ttab<-setDF(HEM_A17_ttab)
+#   HEM_A17_ttab<- mutate_all(HEM_A17_ttab, function(x) as.numeric(as.character(x)))
+#   
+#   List_BR<-colnames(HEM_A17_ttab)[2:18]
+#   matplot(HEM_A17_ttab$Lig_Indus, HEM_A17_ttab[,2:18],type="b",col= hcl.colors(10, "Temps"),pch=c(16,1),xlab="années",ylab="Indic HEM",main=paste("HEM de ",paste(pays,"au format A17")))
+#   legend(x="bottomleft", legend=List_BR, fill =hcl.colors(10, "Temps"))
+#   dev.print(device = png,file = paste(pays,"_evolution_branche_HEM.png"),width = 600)
+# }
+# for (pays in levels(factor(Baseres_HEM_A17_WIOD$Lig_Country))){
+#   evolution_indicateurHEM_WIOD(pays)
+# }
+
 
 
 
